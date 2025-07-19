@@ -1,20 +1,33 @@
 "use client";
-import React, { useState } from 'react';
-import { User, Lock, Mail, ArrowRight } from 'lucide-react';
+import React, { useState } from "react";
+import { User, Lock, Mail, ArrowRight } from "lucide-react";
 
 interface SignupFormProps {
   onSignup: (name: string, email: string, password: string) => void;
   onToggleMode: () => void;
 }
 
-export default function SignupForm({ onSignup, onToggleMode }: SignupFormProps) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function SignupForm({
+  onSignup,
+  onToggleMode,
+}: SignupFormProps) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSignup(name, email, password);
+    setError(null);
+    try {
+      await onSignup(name, email, password);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Authentication failed");
+      } else {
+        setError("Authentication failed");
+      }
+    }
   };
 
   return (
@@ -24,11 +37,18 @@ export default function SignupForm({ onSignup, onToggleMode }: SignupFormProps) 
           <div className="bg-blue-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
             <User className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h1>
-          <p className="text-gray-600">Join to access all medication predictions</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Create Account
+          </h1>
+          <p className="text-gray-600">
+            Join to access all medication predictions
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Full Name
@@ -91,7 +111,7 @@ export default function SignupForm({ onSignup, onToggleMode }: SignupFormProps) 
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <button
               onClick={onToggleMode}
               className="text-blue-600 hover:text-blue-700 font-medium"
