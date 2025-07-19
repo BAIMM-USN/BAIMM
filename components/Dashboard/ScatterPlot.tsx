@@ -8,12 +8,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Activity,
+  Download,
 } from "lucide-react";
 import ScatterChart from "./ScatterPlot/ScatterChart";
 import ScatterStats from "./ScatterPlot/ScatterStats";
 import ScatterFilters from "./ScatterPlot/ScatterFilters";
 import DownloadModal from "./DownloadModal";
-import type { GeoJsonObject, Feature, Geometry } from "geojson"
+import type { GeoJsonObject, Feature, Geometry } from "geojson";
 
 // Dynamically import the map component to avoid SSR issues
 const MedicationDemandMap = dynamic(() => import("./HeatMap"), {
@@ -45,6 +46,8 @@ interface ScatterPlotProps {
   selectedMedication?: string;
   predictionType: "weekly" | "monthly";
   onPredictionTypeChange: (type: "weekly" | "monthly") => void;
+  isLoggedIn: boolean;
+  onLoginClick?: () => void; // Optional: callback to open login modal
 }
 
 export default function ScatterPlot({
@@ -59,6 +62,7 @@ export default function ScatterPlot({
   selectedMedication: selectedMedicationProp,
   predictionType,
   onPredictionTypeChange,
+  isLoggedIn,
 }: ScatterPlotProps) {
   const [viewMode, setViewMode] = useState<"upcoming" | "previous" | "both">(
     "both"
@@ -80,32 +84,35 @@ export default function ScatterPlot({
   const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   interface MunicipalityProperties {
-    kommunenummer: string
-    kommunenavn: string
-    id?: string
-    name?: string
+    kommunenummer: string;
+    kommunenavn: string;
+    id?: string;
+    name?: string;
   }
-  
-  type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>
-  
+
+  type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>;
+
   interface GeoJSONData extends GeoJsonObject {
-    type: "FeatureCollection"
-    features: MunicipalityFeature[]
+    type: "FeatureCollection";
+    features: MunicipalityFeature[];
   }
 
   // Load geojson data on mount
   useEffect(() => {
-      fetch("/Kommuner-M.geojson")
-        .then((res) => res.json())
-        .then((data: GeoJSONData) => {
-          setGeoData(data)
-        })
-    }, [])
+    fetch("/Kommuner-M.geojson")
+      .then((res) => res.json())
+      .then((data: GeoJSONData) => {
+        setGeoData(data);
+      });
+  }, []);
 
   // Extract municipality names from geoData
   const geoMunicipalities: string[] = React.useMemo(() => {
-    if (!geoData || typeof geoData !== 'object' || !('features' in geoData)) return [];
-    const features = (geoData as { features: Array<{ properties?: { kommunenavn?: string } }> }).features;
+    if (!geoData || typeof geoData !== "object" || !("features" in geoData))
+      return [];
+    const features = (
+      geoData as { features: Array<{ properties?: { kommunenavn?: string } }> }
+    ).features;
     return features
       .map((f) => f.properties?.kommunenavn)
       .filter((name): name is string => Boolean(name))
@@ -134,7 +141,6 @@ export default function ScatterPlot({
   const handleViewModeChange = (mode: "upcoming" | "previous" | "both") => {
     setViewMode(mode);
   };
-
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       {/* Header with controls */}
@@ -169,22 +175,18 @@ export default function ScatterPlot({
             </div>
             {/* Download/Export CSV Button */}
             <button
-              onClick={() => setIsDownloadModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200 cursor-pointer"
+              onClick={() => {
+                  setIsDownloadModalOpen(true)
+                
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
+                isLoggedIn
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              }`}
+              disabled={!isLoggedIn}
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
+              <Download className="w-4 h-4" />
               Export CSV
             </button>
           </div>
@@ -309,6 +311,7 @@ export default function ScatterPlot({
         onMedicationChange={onMedicationChange}
         onPredictionTypeChange={onPredictionTypeChange}
       />
+     
     </div>
   );
 }

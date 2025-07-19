@@ -105,6 +105,7 @@ function App() {
                 selectedMedication={selectedMedication}
                 predictionType={predictionType}
                 onPredictionTypeChange={setPredictionType}
+                isLoggedIn={isAuthenticated}
               />
             </div>
 
@@ -163,6 +164,7 @@ function App() {
               selectedMedication={selectedMedication}
               predictionType={predictionType}
               onPredictionTypeChange={setPredictionType}
+              isLoggedIn={isAuthenticated}
             />
           </div>
 
