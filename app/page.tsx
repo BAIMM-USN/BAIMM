@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import LoginModal from "../components/Auth/LoginForm";
 import Header from "../components/Dashboard/Header";
-import WeatherControls from "../components/Dashboard/WeatherControls";
 import MedicationSelector from "../components/Dashboard/MedicationSelector";
 import ScatterPlot from "../components/Dashboard/ScatterPlot";
 import ResearchInfo from "../components/Dashboard/ResearchInfo";
@@ -24,14 +23,14 @@ function App() {
   const [predictionType, setPredictionType] = useState<"weekly" | "monthly">(
     "weekly"
   );
-  const [weatherParams, setWeatherParams] = useState({
-    temperature: 22,
-    humidity: 65,
-    pressure: 1013,
-    windSpeed: 12,
-    precipitation: 2.5,
-    visibility: 15,
-  });
+  // const [weatherParams, setWeatherParams] = useState({
+  //   temperature: 22,
+  //   humidity: 65,
+  //   pressure: 1013,
+  //   windSpeed: 12,
+  //   precipitation: 2.5,
+  //   visibility: 15,
+  // });
 
   if (isLoading) {
     return (

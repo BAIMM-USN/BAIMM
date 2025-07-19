@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Calendar, MapPin, History } from "lucide-react";
+import Select from "react-select";
 
 interface ScatterFiltersProps {
   predictionType: "weekly" | "monthly";
@@ -11,6 +12,9 @@ interface ScatterFiltersProps {
   availableHistoryPeriods: string[];
   selectedHistoryPeriod: string;
   setSelectedHistoryPeriod: (period: string) => void;
+  visualization?: string;
+  municipalitySearch?: string;
+  setMunicipalitySearch?: (val: string) => void;
 }
 
 export default function ScatterFilters({
@@ -22,67 +26,140 @@ export default function ScatterFilters({
   availableHistoryPeriods,
   selectedHistoryPeriod,
   setSelectedHistoryPeriod,
+  visualization,
 }: ScatterFiltersProps) {
+  // Remove separate search state, filter directly in select
+  const [search, setSearch] = React.useState("");
+
+  const filteredMunicipalities = React.useMemo(() => {
+    if (!search) return availableMunicipalities;
+    return availableMunicipalities.filter((name) =>
+      name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [availableMunicipalities, search]);
+  const municipalityOptions = availableMunicipalities.map((municipality) => ({
+    label: municipality,
+    value: municipality,
+  }));
+  const predictionOptions = [
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+  ];
+  const filteredHistoryOptions = availableHistoryPeriods
+    .filter((period) => {
+      // Hide "week" periods when monthly prediction is selected
+      return predictionType === "monthly" ? !/week/i.test(period) : true;
+    })
+    .map((period) => ({
+      label: period,
+      value: period,
+    }));
+
   return (
     <div className="flex flex-wrap gap-4 items-center">
       {/* Prediction Type Selector */}
       <div className="flex items-center gap-2">
         <Calendar className="w-4 h-4 text-gray-600" />
         <span className="text-sm font-medium text-gray-700">Prediction:</span>
-        <select
-          value={predictionType}
-          onChange={(e) =>
-            onPredictionTypeChange(e.target.value as "weekly" | "monthly")
-          }
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-        >
-          <option value="weekly">Weekly</option>
-          <option value="monthly">Monthly</option>
-        </select>
+        <div className="w-24">
+          <Select
+            options={predictionOptions}
+            value={predictionOptions.find(
+              (opt) => opt.value === predictionType
+            )}
+            onChange={(selected) =>
+              selected &&
+              onPredictionTypeChange(selected.value as "weekly" | "monthly")
+            }
+            isSearchable={false}
+            styles={{
+              control: (base) => ({
+                ...base,
+                minHeight: "36px",
+                borderColor: "#d1d5db",
+                fontSize: "0.875rem",
+              }),
+              dropdownIndicator: (base) => ({
+                ...base,
+                padding: "2px",
+              }),
+              indicatorSeparator: () => ({
+                display: "none",
+              }),
+            }}
+          />
+        </div>
       </div>
 
-      {/* Municipality Selector */}
-      <div className="flex items-center gap-2">
-        <MapPin className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">Municipality:</span>
-        <select
-          value={selectedMunicipality}
-          onChange={(e) => setSelectedMunicipality(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-        >
-          {availableMunicipalities.map((municipality) => (
-            <option key={municipality} value={municipality}>
-              {municipality}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Municipality Selector with inline filter and label */}
+      {visualization !== "heatmap" && (
+        <div className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Municipality:</span>
+          <div className="w-48">
+            <Select
+              options={municipalityOptions}
+              value={municipalityOptions.find(
+                (opt) => opt.value === selectedMunicipality
+              )}
+              onChange={(selected) =>
+                selected && setSelectedMunicipality(selected.value)
+              }
+              placeholder="Select municipality..."
+              isSearchable
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "36px",
+                  borderColor: "#d1d5db",
+                  fontSize: "0.875rem",
+                }),
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* History Period Selector */}
-      <div className="flex items-center gap-2">
-        <History className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">History:</span>
-        <select
-          value={selectedHistoryPeriod}
-          onChange={(e) => setSelectedHistoryPeriod(e.target.value)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-        >
-          {availableHistoryPeriods
-            .filter((period) => {
-              // Hide any period containing "week" (case-insensitive) if monthly is selected
-              if (predictionType === "monthly") {
-                return !/week/i.test(period);
+      {visualization !== "heatmap" && (
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">History:</span>
+          <div className="w-36">
+            <Select
+              options={filteredHistoryOptions}
+              value={filteredHistoryOptions.find(
+                (opt) => opt.value === selectedHistoryPeriod
+              )}
+              onChange={(selected) =>
+                selected && setSelectedHistoryPeriod(selected.value)
               }
-              return true;
-            })
-            .map((period) => (
-              <option key={period} value={period}>
-                {period}
-              </option>
-            ))}
-        </select>
-      </div>
+              isSearchable={false}
+              placeholder="Select history..."
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "36px",
+                  borderColor: "#d1d5db",
+                  fontSize: "0.875rem",
+                  borderRadius: "0.375rem",
+                }),
+                dropdownIndicator: (base) => ({
+                  ...base,
+                  padding: "4px",
+                }),
+                indicatorSeparator: () => ({
+                  display: "none",
+                }),
+                menu: (base) => ({
+                  ...base,
+                  fontSize: "0.875rem",
+                }),
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
-    
   );
 }

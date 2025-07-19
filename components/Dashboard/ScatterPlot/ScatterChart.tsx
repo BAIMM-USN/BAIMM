@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TrendingUp,
   Activity,
@@ -9,6 +9,8 @@ import {
   ChevronRight,
   MapPin,
   Pill,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 
 interface DataPoint {
@@ -104,9 +106,16 @@ Municipality: ${selectedMunicipality}`;
       : `M${point.monthNumber}`;
   };
 
+  // Always call hooks at the top level, never inside conditions
+  const [showInsight, setShowInsight] = useState(true);
+
   // Outlier insight for monthly data
   let insight: string | null = null;
   let modifiedData = data;
+
+  useEffect(() => {
+    setShowInsight(true);
+  }, [predictionType, data]);
 
   // For demonstration: artificially create an outlier in monthly data
   if (predictionType === "monthly" && data.length > 1) {
@@ -136,15 +145,26 @@ Municipality: ${selectedMunicipality}`;
     }
   }
 
+  // Move the insight toggle button inside the insight box, only show close button when insight is visible
   return (
     <div
       className="relative bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-6"
       style={{ height: "450px" }}
     >
       {/* Insight/alert for monthly outlier */}
-      {insight && (
-        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded z-10 text-center text-sm font-medium shadow">
-          {insight}
+      {insight && showInsight && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded z-10 text-center text-sm font-medium shadow flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 mr-2" />
+          <span className="flex-1">{insight}</span>
+          <button
+            type="button"
+            onClick={() => setShowInsight(false)}
+            className="ml-2 text-yellow-700 hover:text-yellow-900 rounded-full px-2 py-0.5 focus:outline-none"
+            aria-label="Close insight"
+            title="Close"
+          >
+            <X className="w-4 h-4 cursor-pointer" />
+          </button>
         </div>
       )}
       <svg width="100%" height="100%" className="overflow-visible">
