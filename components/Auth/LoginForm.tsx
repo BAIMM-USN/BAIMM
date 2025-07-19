@@ -38,8 +38,12 @@ export default function LoginModal({
       }
       onClose(); // Only close if successful
       setFormData({ name: "", email: "", password: "" });
-    } catch (err: any) {
-      setError(err.message || "Authentication failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Authentication failed");
+      } else {
+        setError("Authentication failed");
+      }
       // Do not close modal or reset form on error
     }
   };

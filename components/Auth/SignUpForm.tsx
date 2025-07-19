@@ -21,8 +21,12 @@ export default function SignupForm({
     setError(null);
     try {
       await onSignup(name, email, password);
-    } catch (err: any) {
-      setError(err.message || "Signup failed");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Authentication failed");
+      } else {
+        setError("Authentication failed");
+      }
     }
   };
 
