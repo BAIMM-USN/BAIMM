@@ -1,14 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
-  TrendingUp,
-  Activity,
-  Calendar,
-  History,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  Pill,
   AlertTriangle,
   X,
 } from "lucide-react";
@@ -196,7 +188,7 @@ Municipality: ${selectedMunicipality}`;
           <path
             d={`M ${modifiedData
               .map(
-                (point, index) =>
+                (point) =>
                   `${getXPosition(point.x)},${normalizeY(point.y)}`
               )
               .join(" L ")}`}

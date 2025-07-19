@@ -1,20 +1,24 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import {
   TrendingUp,
-  Activity,
   Calendar,
   History,
   ChevronLeft,
   ChevronRight,
-  MapPin,
-  Pill,
+  Activity,
 } from "lucide-react";
 import ScatterChart from "./ScatterPlot/ScatterChart";
 import ScatterStats from "./ScatterPlot/ScatterStats";
 import ScatterFilters from "./ScatterPlot/ScatterFilters";
-import MedicationDemandMap from "./HeatMap";
 import DownloadModal from "./DownloadModal";
+import type { GeoJsonObject, Feature, Geometry } from "geojson"
+
+// Dynamically import the map component to avoid SSR issues
+const MedicationDemandMap = dynamic(() => import("./HeatMap"), {
+  ssr: false,
+});
 
 interface DataPoint {
   x: number;
@@ -73,39 +77,40 @@ export default function ScatterPlot({
     availableHistoryPeriods[0] || ""
   );
   const [municipalitySearch, setMunicipalitySearch] = useState<string>("");
-  const [geoData, setGeoData] = useState<any>(null);
+  const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  interface MunicipalityProperties {
+    kommunenummer: string
+    kommunenavn: string
+    id?: string
+    name?: string
+  }
+  
+  type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>
+  
+  interface GeoJSONData extends GeoJsonObject {
+    type: "FeatureCollection"
+    features: MunicipalityFeature[]
+  }
 
   // Load geojson data on mount
   useEffect(() => {
-    fetch("/Kommuner-M.geojson")
-      .then((res) => res.json())
-      .then((data) => {
-        setGeoData(data);
-      });
-  }, []);
+      fetch("/Kommuner-M.geojson")
+        .then((res) => res.json())
+        .then((data: GeoJSONData) => {
+          setGeoData(data)
+        })
+    }, [])
 
   // Extract municipality names from geoData
   const geoMunicipalities: string[] = React.useMemo(() => {
-    if (!geoData?.features) return [];
-    return geoData.features
-      .map((f: any) => f.properties?.kommunenavn)
-      .filter(Boolean)
-      .sort((a: string, b: string) => a.localeCompare(b));
+    if (!geoData || typeof geoData !== 'object' || !('features' in geoData)) return [];
+    const features = (geoData as { features: Array<{ properties?: { kommunenavn?: string } }> }).features;
+    return features
+      .map((f) => f.properties?.kommunenavn)
+      .filter((name): name is string => Boolean(name))
+      .sort((a, b) => a.localeCompare(b));
   }, [geoData]);
-
-  // Filtered municipalities for selector
-  const filteredMunicipalities = React.useMemo(() => {
-    if (!municipalitySearch) return geoMunicipalities;
-    return geoMunicipalities.filter((name) =>
-      name.toLowerCase().includes(municipalitySearch.toLowerCase())
-    );
-  }, [geoMunicipalities, municipalitySearch]);
-
-  // Remove local state update, only call parent handler
-  const handleMedicationChange = (medication: string) => {
-    onMedicationChange?.(medication);
-  };
 
   const getDisplayData = () => {
     switch (viewMode) {
@@ -121,62 +126,10 @@ export default function ScatterPlot({
   };
 
   const displayData = getDisplayData();
-  const maxX = Math.max(...displayData.map((d) => d.x));
+  // const maxX = Math.max(...displayData.map((d) => d.x));
   const maxY = Math.max(...displayData.map((d) => d.y));
-  const minX = Math.min(...displayData.map((d) => d.x));
+  // const minX = Math.min(...displayData.map((d) => d.x));
   const minY = Math.min(...displayData.map((d) => d.y));
-
-  const normalizeX = (x: number) => ((x - minX) / (maxX - minX)) * 90 + 5;
-  // Center the point if only one data point is present
-  const getXPosition = (x: number) => {
-    if (displayData.length === 1) {
-      return 50; // Center horizontally
-    }
-    return normalizeX(x);
-  };
-
-  const normalizeY = (y: number) => 90 - ((y - minY) / (maxY - minY)) * 80 + 5;
-
-  const getPointColor = (point: DataPoint, index: number) => {
-    if (viewMode === "both") {
-      return index < data.previous.length ? "#6b7280" : "#3b82f6";
-    }
-    return viewMode === "previous" ? "#6b7280" : "#3b82f6";
-  };
-
-  const getPointOpacity = (point: DataPoint, index: number) => {
-    if (viewMode === "both") {
-      return index < data.previous.length ? 0.6 : 1;
-    }
-    return viewMode === "previous" ? 0.8 : 1;
-  };
-
-  const formatTooltipContent = (point: DataPoint, index: number) => {
-    const isHistorical =
-      viewMode === "both"
-        ? index < data.previous.length
-        : viewMode === "previous";
-    const confidenceText = isHistorical
-      ? "Historical Data"
-      : `${point.confidence}% confidence`;
-
-    const periodLabel =
-      predictionType === "weekly"
-        ? `Week ${point.weekNumber}`
-        : `Month ${point.monthNumber}`;
-
-    return `${periodLabel} (${point.date})
-Demand: ${point.y.toLocaleString()} units
-${confidenceText}
-Medication: ${selectedMedication}
-Municipality: ${selectedMunicipality}`;
-  };
-
-  const getPeriodLabel = (point: DataPoint) => {
-    return predictionType === "weekly"
-      ? `W${point.weekNumber}`
-      : `M${point.monthNumber}`;
-  };
 
   const handleViewModeChange = (mode: "upcoming" | "previous" | "both") => {
     setViewMode(mode);

@@ -28,15 +28,6 @@ export default function ScatterFilters({
   setSelectedHistoryPeriod,
   visualization,
 }: ScatterFiltersProps) {
-  // Remove separate search state, filter directly in select
-  const [search, setSearch] = React.useState("");
-
-  const filteredMunicipalities = React.useMemo(() => {
-    if (!search) return availableMunicipalities;
-    return availableMunicipalities.filter((name) =>
-      name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [availableMunicipalities, search]);
   const municipalityOptions = availableMunicipalities.map((municipality) => ({
     label: municipality,
     value: municipality,

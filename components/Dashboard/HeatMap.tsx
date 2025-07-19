@@ -1,29 +1,33 @@
-"use client";
+"use client"
 
-import { MapContainer, GeoJSON } from "react-leaflet";
+import { MapContainer, GeoJSON } from "react-leaflet"
+import "leaflet/dist/leaflet.css"
+import { useEffect, useRef, useState } from "react"
+import L from "leaflet"
+import type { GeoJsonObject, Feature, Geometry } from "geojson"
 
-import "leaflet/dist/leaflet.css";
-import { useEffect, useRef, useState } from "react";
+interface MunicipalityProperties {
+  kommunenummer: string
+  kommunenavn: string
+  id?: string
+  name?: string
+}
 
-import L from "leaflet";
+type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>
 
-// type MunicipalityFeature = {
-//   type: string;
-//   properties: {
-//     kommunenr: string;
-//     navn: string;
-//   };
-//   geometry: any;
-// };
+interface GeoJSONData extends GeoJsonObject {
+  type: "FeatureCollection"
+  features: MunicipalityFeature[]
+}
 
 type DemandMap = {
-  [kommunenr: string]: number;
-};
+  [kommunenr: string]: number
+}
 
 export default function MedicationDemandMap() {
-  const [geoData, setGeoData] = useState<any>(null);
-  const mapRef = useRef<L.Map>(null);
-  const [open, setOpen] = useState(true);
+  const [geoData, setGeoData] = useState<GeoJSONData | null>(null)
+  const mapRef = useRef<L.Map>(null)
+  const [open, setOpen] = useState(true)
 
   // Demand values per municipality (randomized between 100 and 1000)
   const demand: DemandMap = {
@@ -385,7 +389,8 @@ export default function MedicationDemandMap() {
     "5634": Math.floor(Math.random() * 901) + 100,
     "5636": Math.floor(Math.random() * 901) + 100,
     "9999": Math.floor(Math.random() * 901) + 100,
-  };
+  }
+
   const top10Increases = [
     { kommunenavn: "Oslo", increase: 320 },
     { kommunenavn: "Stavanger", increase: 280 },
@@ -397,58 +402,68 @@ export default function MedicationDemandMap() {
     { kommunenavn: "Drammen", increase: 170 },
     { kommunenavn: "Fredrikstad", increase: 150 },
     { kommunenavn: "Porsgrunn", increase: 140 },
-  ];
+  ]
 
   // Fetch filtered municipalities GeoJSON
   useEffect(() => {
     fetch("/Kommuner-M.geojson")
       .then((res) => res.json())
-      .then((data) => {
-        setGeoData(data);
-      });
-  }, []);
+      .then((data: GeoJSONData) => {
+        setGeoData(data)
+      })
+  }, [])
 
   // Zoom to bounds after geoData is loaded
   useEffect(() => {
     if (geoData && mapRef.current) {
-      const bounds = L.geoJSON(geoData).getBounds();
-      mapRef.current.fitBounds(bounds);
+      const bounds = L.geoJSON(geoData).getBounds()
+      mapRef.current.fitBounds(bounds)
     }
-  }, [geoData]);
+  }, [geoData])
 
   // Log geoData changes
   useEffect(() => {
     if (geoData) {
-      console.log("GeoData fetched:", geoData);
+      console.log("GeoData fetched:", geoData)
     }
-  }, [geoData]);
+  }, [geoData])
 
   // Color scale for demand
   const getColor = (value: number) => {
     return value > 800
       ? "#800026"
       : value > 600
-      ? "#BD0026"
-      : value > 400
-      ? "#E31A1C"
-      : value > 200
-      ? "#FC4E2A"
-      : value > 0
-      ? "#FD8D3C"
-      : "#FFEDA0";
-  };
+        ? "#BD0026"
+        : value > 400
+          ? "#E31A1C"
+          : value > 200
+            ? "#FC4E2A"
+            : value > 0
+              ? "#FD8D3C"
+              : "#FFEDA0"
+  }
 
-  const style = (feature: any) => {
-    const kommunenr = feature?.properties?.kommunenummer ?? "";
-    const val = demand[kommunenr] || 0;
+  const style = (feature?: Feature<Geometry, MunicipalityProperties>) => {
+    if (!feature?.properties) {
+      return {
+        fillColor: "#FFEDA0",
+        weight: 1,
+        opacity: 1,
+        color: "#999",
+        fillOpacity: 0.85,
+      }
+    }
+
+    const kommunenr = feature.properties.kommunenummer || feature.properties.id || ""
+    const val = demand[kommunenr] || 0
     return {
       fillColor: getColor(val),
       weight: 1,
       opacity: 1,
       color: "#999",
       fillOpacity: 0.85,
-    };
-  };
+    }
+  }
 
   return (
     <div className="relative">
@@ -465,10 +480,10 @@ export default function MedicationDemandMap() {
             <GeoJSON
               data={geoData}
               style={style}
-              onEachFeature={(feature: any, layer: L.Layer) => {
-                const kommunenr = feature?.properties?.kommunenummer ?? "";
-                const navn = feature?.properties?.kommunenavn ?? "";
-                const val = demand[kommunenr] || "N/A";
+              onEachFeature={(feature: Feature<Geometry, MunicipalityProperties>, layer: L.Layer) => {
+                const kommunenr = feature?.properties?.kommunenummer || feature?.properties?.id || ""
+                const navn = feature?.properties?.kommunenavn || feature?.properties?.name || "Unknown"
+                const val = demand[kommunenr] || "N/A"
                 layer.bindTooltip(
                   `<div class="p-2">
                     <div class="font-semibold text-gray-900">${navn}</div>
@@ -477,8 +492,8 @@ export default function MedicationDemandMap() {
                   {
                     sticky: true,
                     className: "custom-tooltip",
-                  }
-                );
+                  },
+                )
               }}
             />
           )}
@@ -487,50 +502,30 @@ export default function MedicationDemandMap() {
 
       {/* Map Legend */}
       <div className="absolute bottom-4 left-4 bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-max">
-        <h3 className="text-sm font-semibold text-gray-800 mb-3">
-          Demand Level
-        </h3>
+        <h3 className="text-sm font-semibold text-gray-800 mb-3">Demand Level</h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-gray-700">
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FFEDA0" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#FFEDA0" }}></div>
             <span>0</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FD8D3C" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#FD8D3C" }}></div>
             <span>1 - 200</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FC4E2A" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#FC4E2A" }}></div>
             <span>201 - 400</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#E31A1C" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#E31A1C" }}></div>
             <span>401 - 600</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#BD0026" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#BD0026" }}></div>
             <span>601 - 800</span>
           </div>
           <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#800026" }}
-            ></div>
+            <div className="w-4 h-4 rounded-sm" style={{ background: "#800026" }}></div>
             <span>801+</span>
           </div>
         </div>
@@ -546,37 +541,25 @@ export default function MedicationDemandMap() {
         >
           <span>🔺 Top 10 Demand Increases</span>
           <svg
-            className={`w-4 h-4 transform transition-transform duration-200 ${
-              open ? "rotate-180" : ""
-            }`}
+            className={`w-4 h-4 transform transition-transform duration-200 ${open ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 9l-7 7-7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-
         {open && (
-          <div
-            id="top10-panel"
-            className="bg-white p-4 rounded-lg shadow-md border text-sm text-gray-700"
-          >
+          <div id="top10-panel" className="bg-white p-4 rounded-lg shadow-md border text-sm text-gray-700">
             <ul className="space-y-1">
               {top10Increases.map((item, idx) => (
                 <li key={item.kommunenavn} className="flex justify-between">
                   <span>
                     {idx + 1}. {item.kommunenavn}
                   </span>
-                  <span className="text-green-600 font-medium">
-                    +{item.increase}
-                  </span>
+                  <span className="text-green-600 font-medium">+{item.increase}</span>
                 </li>
               ))}
             </ul>
@@ -584,5 +567,5 @@ export default function MedicationDemandMap() {
         )}
       </div>
     </div>
-  );
+  )
 }
