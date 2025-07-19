@@ -23,16 +23,25 @@ function App() {
   const [predictionType, setPredictionType] = useState<"weekly" | "monthly">(
     "weekly"
   );
-  // const [weatherParams, setWeatherParams] = useState({
-  //   temperature: 22,
-  //   humidity: 65,
-  //   pressure: 1013,
-  //   windSpeed: 12,
-  //   precipitation: 2.5,
-  //   visibility: 15,
-  // });
+  const [modalLoading, setModalLoading] = useState(false);
 
-  if (isLoading) {
+  // Track if we've completed the initial auth check
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  React.useEffect(() => {
+    if (!isLoading) setHasCheckedAuth(true);
+  }, [isLoading]);
+
+  // Map Firebase user to expected Header user shape
+  const headerUser =
+    user && user.email
+      ? {
+          name: user.displayName || user.email.split("@")[0],
+          email: user.email,
+        }
+      : null;
+
+  // Only show full-page loading on initial auth check
+  if (!hasCheckedAuth) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -43,14 +52,40 @@ function App() {
     );
   }
 
+  // Custom handlers to pass to LoginModal
+  const handleLogin = async (email: string, password: string) => {
+    setModalLoading(true);
+    try {
+      await login(email, password);
+      setIsLoginModalOpen(false); // Only close on success
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const handleSignup = async (
+    name: string,
+    email: string,
+    password: string
+  ) => {
+    setModalLoading(true);
+    try {
+      await signup(name, email, password);
+      setIsLoginModalOpen(false); // Only close on success
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-100">
         <LoginModal
           isOpen={isLoginModalOpen}
           onClose={() => setIsLoginModalOpen(false)}
-          onLogin={login}
-          onSignup={signup}
+          onLogin={handleLogin}
+          onSignup={handleSignup}
+          loading={modalLoading}
         />
 
         <div className="container mx-auto px-4 py-8">
@@ -120,7 +155,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header user={user} onLogout={logout} />
+      <Header user={headerUser} onLogout={logout} />
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
