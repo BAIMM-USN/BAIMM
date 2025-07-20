@@ -2,6 +2,7 @@
   "name": "baimm",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -30,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-node": "^11.0.0",
+    "typescript": "^5.8.3"
   }
 }
