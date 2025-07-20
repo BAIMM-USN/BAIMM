@@ -86,15 +86,16 @@ export default function ScatterPlot({
     setSelectedMunicipalityProp ?? internalSetSelectedMunicipality;
 
   // For filters, show names but store id
-  // const municipalityOptions = availableMunicipalities.map((m) => ({
-  //   label: m.name,
-  //   value: m.id,
-  // }));
-  // Instead, just use names for availableMunicipalities as expected by ScatterFilters
   const municipalityNames = availableMunicipalities.map((m) => m.name);
 
+  // Static history period options for the filter (not tied to data)
+  const staticHistoryPeriods =
+    predictionType === "weekly"
+      ? ["Lat 4 Weeks", "Last 8 weeks", "last 12 weeks"]
+      : ["Last 3 Months", "Last 6 Months", "Last Year"];
+
   const [selectedHistoryPeriod, setSelectedHistoryPeriod] = useState<string>(
-    availableHistoryPeriods[0] || ""
+    staticHistoryPeriods[0]
   );
   const [municipalitySearch, setMunicipalitySearch] = useState<string>("");
   const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
@@ -161,6 +162,12 @@ export default function ScatterPlot({
   const handleViewModeChange = (mode: "upcoming" | "previous" | "both") => {
     setViewMode(mode);
   };
+
+  // Find the name of the selected municipality (for display in ScatterStats and below)
+  const selectedMunicipalityName =
+    availableMunicipalities.find((m) => m.id === selectedMunicipality)?.name ||
+    municipalityNames[0] ||
+    "";
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -265,7 +272,7 @@ export default function ScatterPlot({
             const found = availableMunicipalities.find((m) => m.name === name);
             if (found) setSelectedMunicipality(found.id);
           }}
-          availableHistoryPeriods={availableHistoryPeriods}
+          availableHistoryPeriods={staticHistoryPeriods}
           selectedHistoryPeriod={selectedHistoryPeriod}
           setSelectedHistoryPeriod={setSelectedHistoryPeriod}
           visualization={visualization}
@@ -294,7 +301,7 @@ export default function ScatterPlot({
             predictionType={predictionType}
             upcoming={data.upcoming}
             selectedMedication={selectedMedication}
-            selectedMunicipality={selectedMunicipality}
+            selectedMunicipality={selectedMunicipalityName}
             viewMode={viewMode}
           />
           {/* Time period indicator */}
@@ -315,7 +322,7 @@ export default function ScatterPlot({
                 {viewMode === "both" &&
                   `${
                     predictionType === "weekly" ? "Weekly" : "Monthly"
-                  } Trend Analysis: ${selectedMedication} in ${selectedMunicipality}`}
+                  } Trend Analysis: ${selectedMedication} in ${selectedMunicipalityName}`}
               </span>
               {viewMode === "upcoming" && (
                 <ChevronRight className="w-4 h-4 text-gray-600" />
