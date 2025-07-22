@@ -331,7 +331,7 @@ export default function ScatterPlot({
           </div>
         </>
       ) : (
-        <MedicationDemandMap />
+        <MedicationDemandMap selectedMedication={selectedMedication} />
       )}
 
       {/* Download Modal */}
