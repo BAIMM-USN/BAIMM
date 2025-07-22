@@ -87,6 +87,7 @@ export default function ScatterPlot({
 
   // For filters, show names but store id
   const municipalityNames = availableMunicipalities.map((m) => m.name);
+  console.log(availableMunicipalities)
 
   // Static history period options for the filter (not tied to data)
   const staticHistoryPeriods =
@@ -338,7 +339,7 @@ export default function ScatterPlot({
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
-        availableMunicipalities={municipalityNames}
+         availableMunicipalities={availableMunicipalities}
         availableHistoryPeriods={availableHistoryPeriods}
         selectedMedication={selectedMedication}
         predictionType={predictionType}
