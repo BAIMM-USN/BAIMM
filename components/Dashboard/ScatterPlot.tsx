@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import {
   TrendingUp,
@@ -14,22 +14,13 @@ import ScatterChart from "./ScatterPlot/ScatterChart";
 import ScatterStats from "./ScatterPlot/ScatterStats";
 import ScatterFilters from "./ScatterPlot/ScatterFilters";
 import DownloadModal from "./DownloadModal";
-import type { GeoJsonObject, Feature, Geometry } from "geojson";
+// import type { GeoJsonObject, Feature, Geometry } from "geojson";
+import type { Municipality, DataPoint } from "../../types/medication";
 
 // Dynamically import the map component to avoid SSR issues
 const MedicationDemandMap = dynamic(() => import("./HeatMap"), {
   ssr: false,
 });
-
-interface DataPoint {
-  x: number;
-  y: number;
-  label: string;
-  weekNumber?: number;
-  monthNumber?: number;
-  date: string;
-  confidence?: number;
-}
 
 interface ScatterPlotProps {
   data: {
@@ -40,14 +31,17 @@ interface ScatterPlotProps {
   xLabel: string;
   yLabel: string;
   availableMedications: string[];
-  availableMunicipalities: string[];
+  availableMunicipalities: Municipality[];
   availableHistoryPeriods: string[];
   onMedicationChange?: (medication: string) => void;
   selectedMedication?: string;
   predictionType: "weekly" | "monthly";
   onPredictionTypeChange: (type: "weekly" | "monthly") => void;
   isLoggedIn: boolean;
-  onLoginClick?: () => void; // Optional: callback to open login modal
+  onLoginClick?: () => void;
+  // Add these two props to match usage in parent
+  selectedMunicipality?: string;
+  setSelectedMunicipality?: (municipality: string) => void;
 }
 
 export default function ScatterPlot({
@@ -63,63 +57,54 @@ export default function ScatterPlot({
   predictionType,
   onPredictionTypeChange,
   isLoggedIn,
+  selectedMunicipality: selectedMunicipalityProp,
+  setSelectedMunicipality: setSelectedMunicipalityProp,
 }: ScatterPlotProps) {
   const [viewMode, setViewMode] = useState<"upcoming" | "previous" | "both">(
     "both"
   );
-  // Visualization toggle state
   const [visualization, setVisualization] = useState<"scatter" | "heatmap">(
     "scatter"
   );
-  // Use selectedMedication from parent if provided, otherwise fallback to first available
+
   const selectedMedication =
     selectedMedicationProp ?? (availableMedications[0] || "");
-  const [selectedMunicipality, setSelectedMunicipality] = useState<string>(
-    availableMunicipalities[0] || ""
-  );
+
+  // Use selectedMunicipality from parent if provided, otherwise fallback to first available
+  const municipalityIds = availableMunicipalities.map((m) => m.id);
+  const [internalSelectedMunicipality, internalSetSelectedMunicipality] =
+    useState<string>(
+      selectedMunicipalityProp &&
+        municipalityIds.includes(selectedMunicipalityProp)
+        ? selectedMunicipalityProp
+        : municipalityIds[0] || ""
+    );
+  const selectedMunicipality =
+    selectedMunicipalityProp ?? internalSelectedMunicipality;
+  const setSelectedMunicipality =
+    setSelectedMunicipalityProp ?? internalSetSelectedMunicipality;
+
+  // For filters, show names but store id
+  const municipalityNames = availableMunicipalities.map((m) => m.name);
+  console.log(availableMunicipalities);
+
+  // Static history period options for the filter (not tied to data)
+  const staticHistoryPeriods =
+    predictionType === "weekly"
+      ? ["Lat 4 Weeks", "Last 8 weeks", "last 12 weeks"]
+      : ["Last 3 Months", "Last 6 Months", "Last Year"];
+
   const [selectedHistoryPeriod, setSelectedHistoryPeriod] = useState<string>(
-    availableHistoryPeriods[0] || ""
+    staticHistoryPeriods[0]
   );
   const [municipalitySearch, setMunicipalitySearch] = useState<string>("");
-  const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
+ 
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  interface MunicipalityProperties {
-    kommunenummer: string;
-    kommunenavn: string;
-    id?: string;
-    name?: string;
-  }
 
-  type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>;
+ 
+ 
 
-  interface GeoJSONData extends GeoJsonObject {
-    type: "FeatureCollection";
-    features: MunicipalityFeature[];
-  }
-
-  // Load geojson data on mount
-  useEffect(() => {
-    fetch("/Kommuner-M.geojson")
-      .then((res) => res.json())
-      .then((data: GeoJSONData) => {
-        setGeoData(data);
-      });
-  }, []);
-
-  // Extract municipality names from geoData
-  const geoMunicipalities: string[] = React.useMemo(() => {
-    if (!geoData || typeof geoData !== "object" || !("features" in geoData))
-      return [];
-    const features = (
-      geoData as { features: Array<{ properties?: { kommunenavn?: string } }> }
-    ).features;
-    return features
-      .map((f) => f.properties?.kommunenavn)
-      .filter((name): name is string => Boolean(name))
-      .sort((a, b) => a.localeCompare(b));
-  }, [geoData]);
-
-  const getDisplayData = () => {
+  const getDisplayData = (): DataPoint[] => {
     switch (viewMode) {
       case "upcoming":
         return data.upcoming;
@@ -133,14 +118,21 @@ export default function ScatterPlot({
   };
 
   const displayData = getDisplayData();
-  // const maxX = Math.max(...displayData.map((d) => d.x));
-  const maxY = Math.max(...displayData.map((d) => d.y));
-  // const minX = Math.min(...displayData.map((d) => d.x));
-  const minY = Math.min(...displayData.map((d) => d.y));
+  const maxY =
+    displayData.length > 0 ? Math.max(...displayData.map((d) => d.y)) : 0;
+  const minY =
+    displayData.length > 0 ? Math.min(...displayData.map((d) => d.y)) : 0;
 
   const handleViewModeChange = (mode: "upcoming" | "previous" | "both") => {
     setViewMode(mode);
   };
+
+  // Find the name of the selected municipality (for display in ScatterStats and below)
+  const selectedMunicipalityName =
+    availableMunicipalities.find((m) => m.id === selectedMunicipality)?.name ||
+    municipalityNames[0] ||
+    "";
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       {/* Header with controls */}
@@ -176,8 +168,7 @@ export default function ScatterPlot({
             {/* Download/Export CSV Button */}
             <button
               onClick={() => {
-                  setIsDownloadModalOpen(true)
-                
+                setIsDownloadModalOpen(true);
               }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer ${
                 isLoggedIn
@@ -232,10 +223,20 @@ export default function ScatterPlot({
         <ScatterFilters
           predictionType={predictionType}
           onPredictionTypeChange={onPredictionTypeChange}
-          availableMunicipalities={geoMunicipalities}
-          selectedMunicipality={selectedMunicipality}
-          setSelectedMunicipality={setSelectedMunicipality}
-          availableHistoryPeriods={availableHistoryPeriods}
+          availableMunicipalities={municipalityNames}
+          selectedMunicipality={
+            // Find the name for the selected id, fallback to first name
+            availableMunicipalities.find((m) => m.id === selectedMunicipality)
+              ?.name ||
+            municipalityNames[0] ||
+            ""
+          }
+          setSelectedMunicipality={(name: string) => {
+            // Find the id for the selected name and update by id
+            const found = availableMunicipalities.find((m) => m.name === name);
+            if (found) setSelectedMunicipality(found.id);
+          }}
+          availableHistoryPeriods={staticHistoryPeriods}
           selectedHistoryPeriod={selectedHistoryPeriod}
           setSelectedHistoryPeriod={setSelectedHistoryPeriod}
           visualization={visualization}
@@ -257,7 +258,6 @@ export default function ScatterPlot({
             selectedMunicipality={selectedMunicipality}
             dataPreviousLength={data.previous.length}
           />
-
           {/* Statistics Cards */}
           <ScatterStats
             minY={minY}
@@ -265,10 +265,9 @@ export default function ScatterPlot({
             predictionType={predictionType}
             upcoming={data.upcoming}
             selectedMedication={selectedMedication}
-            selectedMunicipality={selectedMunicipality}
+            selectedMunicipality={selectedMunicipalityName}
             viewMode={viewMode}
           />
-
           {/* Time period indicator */}
           <div className="mt-4 flex items-center justify-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2">
@@ -287,7 +286,7 @@ export default function ScatterPlot({
                 {viewMode === "both" &&
                   `${
                     predictionType === "weekly" ? "Weekly" : "Monthly"
-                  } Trend Analysis: ${selectedMedication} in ${selectedMunicipality}`}
+                  } Trend Analysis: ${selectedMedication} in ${selectedMunicipalityName}`}
               </span>
               {viewMode === "upcoming" && (
                 <ChevronRight className="w-4 h-4 text-gray-600" />
@@ -296,14 +295,17 @@ export default function ScatterPlot({
           </div>
         </>
       ) : (
-        <MedicationDemandMap />
+        <MedicationDemandMap
+          selectedMedication={selectedMedication}
+          predictionType={predictionType}
+        />
       )}
 
       {/* Download Modal */}
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
-        availableMunicipalities={geoMunicipalities}
+        availableMunicipalities={availableMunicipalities}
         availableHistoryPeriods={availableHistoryPeriods}
         selectedMedication={selectedMedication}
         predictionType={predictionType}
@@ -311,7 +313,6 @@ export default function ScatterPlot({
         onMedicationChange={onMedicationChange}
         onPredictionTypeChange={onPredictionTypeChange}
       />
-     
     </div>
   );
 }

@@ -1,9 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import {
-  AlertTriangle,
-  X,
-} from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 interface DataPoint {
   x: number;
@@ -99,50 +96,58 @@ Municipality: ${selectedMunicipality}`;
   };
 
   // Always call hooks at the top level, never inside conditions
-  const [showInsight, setShowInsight] = useState(true);
-
-  // Outlier insight for monthly data
-  let insight: string | null = null;
-  let modifiedData = data;
+  const [showInsight, setShowInsight] = useState(false);
+  const [insight, setInsight] = useState<string | null>(null);
 
   useEffect(() => {
-    setShowInsight(true);
-  }, [predictionType, data]);
-
-  // For demonstration: artificially create an outlier in monthly data
-  if (predictionType === "monthly" && data.length > 1) {
-    // Clone the data array to avoid mutating props
-    modifiedData = [...data];
-    // Make the last data point a significant outlier (+50% compared to previous)
-    const prev = modifiedData[modifiedData.length - 2];
-    if (prev) {
-      modifiedData[modifiedData.length - 1] = {
-        ...modifiedData[modifiedData.length - 1],
-        y: prev.y * 1.5,
-      };
-    }
-    // Outlier insight logic
-    const last = modifiedData[modifiedData.length - 1];
-    if (prev && prev.y > 0) {
-      const change = ((last.y - prev.y) / prev.y) * 100;
-      if (change > 30) {
-        insight = `Significant increase detected: +${change.toFixed(
-          1
-        )}% compared to previous month.`;
-      } else if (change < -30) {
-        insight = `Significant decrease detected: ${change.toFixed(
-          1
-        )}% compared to previous month.`;
+    let insightMsg: string | null = null;
+    if (data.length > 1) {
+      const prev = data[data.length - 2];
+      const last = data[data.length - 1];
+      if (prev && last && prev.y > 0) {
+        const change = ((last.y - prev.y) / prev.y) * 100;
+        if (change > 30) {
+          insightMsg =
+            predictionType === "monthly"
+              ? `Significant increase detected: +${change.toFixed(
+                  1
+                )}% compared to previous month.`
+              : `Significant increase detected: +${change.toFixed(
+                  1
+                )}% compared to previous week.`;
+        } else if (change < -30) {
+          insightMsg =
+            predictionType === "monthly"
+              ? `Significant decrease detected: ${change.toFixed(
+                  1
+                )}% compared to previous month.`
+              : `Significant decrease detected: ${change.toFixed(
+                  1
+                )}% compared to previous week.`;
+        }
       }
     }
-  }
+    setInsight(insightMsg);
+    setShowInsight(false); // Reset insight visibility on data/predictionType change
+  }, [predictionType, data]);
 
-  // Move the insight toggle button inside the insight box, only show close button when insight is visible
+  const modifiedData = data;
+
   return (
     <div
       className="relative bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-6"
       style={{ height: "450px" }}
     >
+      {/* Outlier caution icon (top right) */}
+      {insight && !showInsight && (
+        <button
+          className="absolute top-3 right-3 bg-yellow-100 border border-yellow-400 rounded-full p-1 hover:bg-yellow-200 transition"
+          title="Show outlier insight"
+          onClick={() => setShowInsight(true)}
+        >
+          <AlertTriangle className="w-5 h-5 text-yellow-600" />
+        </button>
+      )}
       {/* Insight/alert for monthly outlier */}
       {insight && showInsight && (
         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded z-10 text-center text-sm font-medium shadow flex items-center gap-2">
@@ -187,10 +192,7 @@ Municipality: ${selectedMunicipality}`;
         {viewMode === "both" && modifiedData.length > 1 && (
           <path
             d={`M ${modifiedData
-              .map(
-                (point) =>
-                  `${getXPosition(point.x)},${normalizeY(point.y)}`
-              )
+              .map((point) => `${getXPosition(point.x)},${normalizeY(point.y)}`)
               .join(" L ")}`}
             fill="none"
             stroke="url(#trendLine)"
@@ -250,26 +252,6 @@ Municipality: ${selectedMunicipality}`;
       <div className="absolute top-1/2 left-2 transform -translate-y-1/2 -rotate-90 text-sm text-gray-600 font-medium">
         {yLabel}
       </div>
-
-      {/* Legend for both view */}
-      {/* {viewMode === "both" && (
-        <div className="absolute top-4 right-4 bg-white rounded-lg shadow-sm p-3 border">
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-gray-500 opacity-60"></div>
-              <span className="text-gray-600">
-                Historical {predictionType === "weekly" ? "Weeks" : "Months"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-gray-600">
-                Next {predictionType === "weekly" ? "Week" : "Month"} Prediction
-              </span>
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {/* Current period indicator line */}
       {viewMode === "both" && (

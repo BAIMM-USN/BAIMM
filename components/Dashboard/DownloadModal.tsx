@@ -1,16 +1,22 @@
 "use client";
 import React, { useState } from "react";
 import { X, Download, MapPin, History, FileText } from "lucide-react";
+import { getDocs, collection, query, where } from "firebase/firestore";
+import { db } from "../../lib/firebase";
+import Select from "react-select";
+import { Municipality, Prediction } from "@/types/medication";
+
+type MunicipalityOption = { label: string; value: string };
 
 interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  availableMunicipalities: string[];
+  availableMunicipalities: Municipality[];
   availableHistoryPeriods: string[];
   selectedMedication: string;
   predictionType: "weekly" | "monthly";
-  availableMedications: string[]; // Add this if dynamic
-  onMedicationChange?: (med: string) => void; // optional
+  availableMedications: string[];
+  onMedicationChange?: (med: string) => void;
   onPredictionTypeChange?: (type: "weekly" | "monthly") => void;
 }
 
@@ -25,6 +31,25 @@ export default function DownloadModal({
   onMedicationChange,
   onPredictionTypeChange,
 }: DownloadModalProps) {
+  // const allMunicipalities: { id: string; name: string }[] =
+  //   typeof window !== "undefined" && (window as any).__ALL_MUNICIPALITIES__
+  //     ? (window as any).__ALL_MUNICIPALITIES__
+  //     : [];
+  // console.log(availableMunicipalities, "all");
+
+  // Build options from availableMunicipalities prop (array of Municipality objects)
+  const municipalityOptions: MunicipalityOption[] = availableMunicipalities.map(
+    (municipality) => ({
+      label: municipality.name,
+      value: municipality.id,
+    })
+  );
+
+  // Track selectedMunicipalities as ids (not names)
+  const [selectedMunicipalityOptions, setSelectedMunicipalityOptions] =
+    useState<MunicipalityOption[]>([]);
+
+  // All other hooks
   const [selectedMunicipalities, setSelectedMunicipalities] = useState<
     string[]
   >([]);
@@ -38,34 +63,62 @@ export default function DownloadModal({
   const [localPredictionType, setLocalPredictionType] =
     useState(predictionType);
 
-  if (!isOpen) return null;
+  // Sync localMedication and localPredictionType with props when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setLocalMedication(selectedMedication);
+      setLocalPredictionType(predictionType);
+    }
+  }, [isOpen, selectedMedication, predictionType]);
 
-  const handleMunicipalityToggle = (municipality: string) => {
-    setSelectedMunicipalities((prev) =>
-      prev.includes(municipality)
-        ? prev.filter((m) => m !== municipality)
-        : [...prev, municipality]
-    );
-  };
-
-  const handleSelectAll = () => {
+  // Update selectedMunicipalities when options change (always use .value, which is the id)
+  React.useEffect(() => {
     setSelectedMunicipalities(
-      selectedMunicipalities.length === availableMunicipalities.length
-        ? []
-        : [...availableMunicipalities]
+      selectedMunicipalityOptions.map((opt) => opt.value)
     );
+  }, [selectedMunicipalityOptions]);
+
+  // Prevent modal from closing on select change
+  const handleMedicationChange = (val: string) => {
+    setLocalMedication(val);
+    if (onMedicationChange) onMedicationChange(val);
+  };
+  const handlePredictionTypeChange = (val: "weekly" | "monthly") => {
+    setLocalPredictionType(val);
+    if (onPredictionTypeChange) onPredictionTypeChange(val);
   };
 
-  const generateCSVData = () => {
+  const handleDownload = async () => {
+    setIsDownloading(true);
+
     const municipalities =
       selectedMunicipalities.length > 0
         ? selectedMunicipalities
-        : availableMunicipalities;
+        : municipalityOptions.map((opt) => opt.value);
+
+    // Build Firestore query
+    const predsQuery = query(
+      collection(db, "predictions"),
+      where("periodType", "==", localPredictionType),
+      where(
+        localPredictionType === "weekly" ? "weekNumber" : "monthNumber",
+        "==",
+        parseInt(selectedHistoryPeriod.match(/\d+/)?.[0] || "1", 10)
+      ),
+      where("medicationId", "==", localMedication)
+    );
+
+    const predsSnap = await getDocs(predsQuery);
+    // Map municipalityId to prediction data
+    const predMap: Record<string, Prediction> = {};
+    predsSnap.forEach((doc) => {
+      const data = doc.data() as Prediction;
+      predMap[data.municipalityId ?? ""] = data;
+    });
 
     const headers = [
       "Municipality",
       "Demand (units)",
-      "Change (%)",
       ...(includeConfidence ? ["Confidence (%)"] : []),
       ...(includeOutliers ? ["Outlier Status"] : []),
       "Date Range",
@@ -73,37 +126,29 @@ export default function DownloadModal({
       "Prediction Type",
     ];
 
-    const rows = municipalities.map((municipality) => {
-      // Generate mock data for demonstration
-      const demand = Math.floor(Math.random() * 900) + 100;
-      const change = (Math.random() - 0.5) * 40; // -20% to +20%
-      const confidence = Math.floor(Math.random() * 20) + 80; // 80-100%
-      const isOutlier = Math.random() > 0.8;
+    // No need for nameToId mapping, municipalities are already ids
+    const rows = municipalities.map((municipalityId) => {
+      const pred = predMap[municipalityId];
+      // Use real demand value if available, otherwise blank
+      const demand = pred ? pred.predictedValue ?? pred.y ?? "" : "";
+      const confidence =
+        pred && typeof pred.confidence === "number" ? pred.confidence : "";
+      // const isOutlier = pred && pred.isOutlier ? "High Outlier" : "Normal";
 
       const row = [
-        municipality,
+        municipalityId,
         demand.toString(),
-        change.toFixed(1),
         ...(includeConfidence ? [confidence.toString()] : []),
-        ...(includeOutliers ? [isOutlier ? "High Outlier" : "Normal"] : []),
         selectedHistoryPeriod,
-        selectedMedication,
-        predictionType.charAt(0).toUpperCase() + predictionType.slice(1),
+        localMedication,
+        localPredictionType.charAt(0).toUpperCase() +
+          localPredictionType.slice(1),
       ];
 
       return row;
     });
 
-    return [headers, ...rows];
-  };
-
-  const handleDownload = async () => {
-    setIsDownloading(true);
-
-    // Simulate download processing
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const csvData = generateCSVData();
+    const csvData = [headers, ...rows];
     const csvContent = csvData.map((row) => row.join(",")).join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -113,9 +158,9 @@ export default function DownloadModal({
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `medication-demand-${selectedMedication
+      `medication-demand-${localMedication
         .replace(/\s+/g, "-")
-        .toLowerCase()}-${predictionType}-${
+        .toLowerCase()}-${localPredictionType}-${
         new Date().toISOString().split("T")[0]
       }.csv`
     );
@@ -126,6 +171,7 @@ export default function DownloadModal({
     document.body.removeChild(link);
 
     setIsDownloading(false);
+    // Only close after download, not on select change
     onClose();
   };
 
@@ -134,6 +180,8 @@ export default function DownloadModal({
       onClose();
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-40 backdrop-blur-sm">
@@ -179,10 +227,7 @@ export default function DownloadModal({
               </label>
               <select
                 value={localMedication}
-                onChange={(e) => {
-                  setLocalMedication(e.target.value);
-                  onMedicationChange?.(e.target.value);
-                }}
+                onChange={(e) => handleMedicationChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 {availableMedications?.map((med) => (
@@ -200,11 +245,11 @@ export default function DownloadModal({
               </label>
               <select
                 value={localPredictionType}
-                onChange={(e) => {
-                  const val = e.target.value as "weekly" | "monthly";
-                  setLocalPredictionType(val);
-                  onPredictionTypeChange?.(val);
-                }}
+                onChange={(e) =>
+                  handlePredictionTypeChange(
+                    e.target.value as "weekly" | "monthly"
+                  )
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 capitalize"
               >
                 <option value="weekly">Weekly</option>
@@ -215,48 +260,38 @@ export default function DownloadModal({
 
           {/* Municipality Selection */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-gray-600" />
-                <label className="text-sm font-medium text-gray-700">
-                  Municipalities
-                </label>
-              </div>
-              <button
-                onClick={handleSelectAll}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                {selectedMunicipalities.length ===
-                availableMunicipalities.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </button>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-600" />
+              <label className="text-sm font-medium text-gray-700">
+                Municipality
+              </label>
             </div>
-            <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {availableMunicipalities.map((municipality) => (
-                  <label
-                    key={municipality}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedMunicipalities.includes(municipality)}
-                      onChange={() => handleMunicipalityToggle(municipality)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">
-                      {municipality}
-                    </span>
-                  </label>
-                ))}
-              </div>
+            <div className="w-64">
+              <Select
+                options={municipalityOptions}
+                value={selectedMunicipalityOptions}
+                onChange={(selected) =>
+                  setSelectedMunicipalityOptions(
+                    Array.isArray(selected)
+                      ? selected
+                      : selected
+                      ? [selected]
+                      : []
+                  )
+                }
+                isMulti
+                placeholder="Select municipality..."
+                isSearchable
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: "36px",
+                    borderColor: "#d1d5db",
+                    fontSize: "0.875rem",
+                  }),
+                }}
+              />
             </div>
-            <p className="text-xs text-gray-500">
-              {selectedMunicipalities.length > 0
-                ? `${selectedMunicipalities.length} municipalities selected`
-                : "All municipalities will be included"}
-            </p>
           </div>
 
           {/* History Period */}
@@ -360,3 +395,4 @@ export default function DownloadModal({
     </div>
   );
 }
+
