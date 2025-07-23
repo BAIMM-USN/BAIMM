@@ -38,10 +38,14 @@ type Prediction = {
 
 interface HeatMapProps {
   selectedMedication: string;
+  predictionType?: "weekly" | "monthly";
 }
 
 // Change function signature to accept selectedMedication as a prop
-export default function MedicationDemandMap({ selectedMedication }: HeatMapProps) {
+export default function MedicationDemandMap({
+  selectedMedication,
+  predictionType = "weekly",
+}: HeatMapProps) {
   const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
   const mapRef = useRef<L.Map>(null);
   const [open, setOpen] = useState(true);
@@ -66,35 +70,45 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
         (doc) => doc.data() as { id: string; name: string }
       );
       setMedications(meds);
-    //   if (meds.length > 0 && !selectedMedication)
-    //     setSelectedMedication(meds[0].id);
+      //   if (meds.length > 0 && !selectedMedication)
+      //     setSelectedMedication(meds[0].id);
     }
     fetchMeds();
   }, []);
 
-  // Fetch demand values for week 4 from Firestore (for coloring the map)
+  // Fetch demand values for week 4 (weekly) or month 3 (monthly) from Firestore (for coloring the map)
   useEffect(() => {
     if (!selectedMedication) return;
     async function fetchDemand() {
-      // Query all predictions for week 4 (periodType: weekly, weekNumber: 4)
-      const predsSnap = await getDocs(
-        query(
-          collection(db, "predictions"),
-          where("periodType", "==", "weekly"),
-          where("weekNumber", "==", 4),
-          where("medicationId", "==", selectedMedication)
-        )
-      );
+      let predsSnap;
+      if (predictionType === "monthly") {
+        predsSnap = await getDocs(
+          query(
+            collection(db, "predictions"),
+            where("periodType", "==", "monthly"),
+            where("monthNumber", "==", 3),
+            where("medicationId", "==", selectedMedication)
+          )
+        );
+      } else {
+        predsSnap = await getDocs(
+          query(
+            collection(db, "predictions"),
+            where("periodType", "==", "weekly"),
+            where("weekNumber", "==", 4),
+            where("medicationId", "==", selectedMedication)
+          )
+        );
+      }
       const demandMap: DemandMap = {};
       predsSnap.forEach((doc) => {
         const data = doc.data();
-        // Use municipalityId as key, y or predictedValue as value
         demandMap[data.municipalityId] = data.predictedValue || data.y || 0;
       });
       setDemand(demandMap);
     }
     fetchDemand();
-  }, [selectedMedication]);
+  }, [selectedMedication, predictionType]);
 
   // Fetch filtered municipalities GeoJSON
   useEffect(() => {
@@ -126,6 +140,21 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
 
   // Color scale for demand
   const getColor = (value: number) => {
+    if (predictionType === "monthly") {
+      // Monthly: use a different scale (example: higher values, wider bands)
+      return value > 300
+        ? "#800026"
+        : value > 200
+        ? "#BD0026"
+        : value > 120
+        ? "#E31A1C"
+        : value > 60
+        ? "#FC4E2A"
+        : value > 0
+        ? "#FD8D3C"
+        : "#FFEDA0";
+    }
+    // Weekly: original scale
     return value > 70
       ? "#800026"
       : value > 50
@@ -207,50 +236,67 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
   useEffect(() => {
     if (!selectedMedication) return;
     async function fetchIncreases() {
-      // Weekly: get week 3 and week 4 for selected medication
-      const weeklySnap = await getDocs(
-        query(
-          collection(db, "predictions"),
-          where("periodType", "==", "weekly"),
-          where("weekNumber", "in", [3, 4]),
-          where("medicationId", "==", selectedMedication)
-        )
-      );
-      const weekly: Prediction[] = [];
-      weeklySnap.forEach((doc) => {
-        weekly.push(doc.data() as Prediction);
-      });
-      setWeeklyPredictions(weekly);
-
-      // Monthly: get month 2 and month 3 for selected medication
-      const monthlySnap = await getDocs(
-        query(
-          collection(db, "predictions"),
-          where("periodType", "==", "monthly"),
-          where("monthNumber", "in", [2, 3]),
-          where("medicationId", "==", selectedMedication)
-        )
-      );
-      const monthly: Prediction[] = [];
-      monthlySnap.forEach((doc) => {
-        monthly.push(doc.data() as Prediction);
-      });
-      setMonthlyPredictions(monthly);
-
-      // Calculate top 10 increases for weekly (week 3 -> week 4)
-      const increases: { municipalityId: string; increase: number }[] = [];
-      const week3Map: { [mun: string]: number } = {};
-      const week4Map: { [mun: string]: number } = {};
-      weekly.forEach((p) => {
-        if (p.weekNumber === 3)
-          week3Map[p.municipalityId] = p.predictedValue || p.y || 0;
-        if (p.weekNumber === 4)
-          week4Map[p.municipalityId] = p.predictedValue || p.y || 0;
-      });
-      Object.keys(week4Map).forEach((mun) => {
-        const inc = week4Map[mun] - (week3Map[mun] || 0);
-        increases.push({ municipalityId: mun, increase: inc });
-      });
+      let increases: { municipalityId: string; increase: number }[] = [];
+      if (predictionType === "monthly") {
+        // Monthly: get month 2 and month 3 for selected medication
+        const monthlySnap = await getDocs(
+          query(
+            collection(db, "predictions"),
+            where("periodType", "==", "monthly"),
+            where("monthNumber", "in", [2, 3]),
+            where("medicationId", "==", selectedMedication)
+          )
+        );
+        const month2Map: { [mun: string]: number } = {};
+        const month3Map: { [mun: string]: number } = {};
+        monthlySnap.forEach((doc) => {
+          const data = doc.data() as Prediction;
+          if (data.monthNumber === 2) {
+            month2Map[data.municipalityId] = data.predictedValue || data.y || 0;
+          }
+          if (data.monthNumber === 3) {
+            month3Map[data.municipalityId] = data.predictedValue || data.y || 0;
+          }
+        });
+        // Only compare municipalities that exist in both months
+        Object.keys(month3Map).forEach((mun) => {
+          if (month2Map.hasOwnProperty(mun)) {
+            const inc = month3Map[mun] - month2Map[mun];
+            increases.push({ municipalityId: mun, increase: inc });
+          }
+        });
+        setMonthlyPredictions(
+          monthlySnap.docs.map((doc) => doc.data() as Prediction)
+        );
+      } else {
+        // Weekly: get week 3 and week 4 for selected medication
+        const weeklySnap = await getDocs(
+          query(
+            collection(db, "predictions"),
+            where("periodType", "==", "weekly"),
+            where("weekNumber", "in", [3, 4]),
+            where("medicationId", "==", selectedMedication)
+          )
+        );
+        const week3Map: { [mun: string]: number } = {};
+        const week4Map: { [mun: string]: number } = {};
+        weeklySnap.forEach((doc) => {
+          const data = doc.data() as Prediction;
+          if (data.weekNumber === 3) {
+            week3Map[data.municipalityId] = data.predictedValue || data.y || 0;
+          }
+          if (data.weekNumber === 4) {
+            week4Map[data.municipalityId] = data.predictedValue || data.y || 0;
+          }
+        });
+        Object.keys(week4Map).forEach((mun) => {
+          const inc = week4Map[mun] - (week3Map[mun] || 0);
+          increases.push({ municipalityId: mun, increase: inc });
+        });
+        setWeeklyPredictions(
+          weeklySnap.docs.map((doc) => doc.data() as Prediction)
+        );
+      }
 
       // Map municipalityId to name using geoData if available
       let idToName: { [id: string]: string } = {};
@@ -276,7 +322,7 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
       setTop10Increases(top10);
     }
     fetchIncreases();
-  }, [geoData, selectedMedication]);
+  }, [geoData, selectedMedication, predictionType]);
 
   return (
     <div className="relative">
@@ -337,48 +383,97 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
           Demand Level
         </h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-gray-700">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FFEDA0" }}
-            ></div>
-            <span>0</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FD8D3C" }}
-            ></div>
-            <span>1 - 15</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#FC4E2A" }}
-            ></div>
-            <span>16 - 30</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#E31A1C" }}
-            ></div>
-            <span>31 - 50</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#BD0026" }}
-            ></div>
-            <span>51 - 70</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-4 h-4 rounded-sm"
-              style={{ background: "#800026" }}
-            ></div>
-            <span>71+</span>
-          </div>
+          {predictionType === "monthly" ? (
+            <>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FFEDA0" }}
+                ></div>
+                <span>0</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FD8D3C" }}
+                ></div>
+                <span>1 - 60</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FC4E2A" }}
+                ></div>
+                <span>61 - 120</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#E31A1C" }}
+                ></div>
+                <span>121 - 200</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#BD0026" }}
+                ></div>
+                <span>201 - 300</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#800026" }}
+                ></div>
+                <span>301+</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FFEDA0" }}
+                ></div>
+                <span>0</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FD8D3C" }}
+                ></div>
+                <span>1 - 15</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#FC4E2A" }}
+                ></div>
+                <span>16 - 30</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#E31A1C" }}
+                ></div>
+                <span>31 - 50</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#BD0026" }}
+                ></div>
+                <span>51 - 70</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-4 h-4 rounded-sm"
+                  style={{ background: "#800026" }}
+                ></div>
+                <span>71+</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -432,4 +527,3 @@ export default function MedicationDemandMap({ selectedMedication }: HeatMapProps
     </div>
   );
 }
-
