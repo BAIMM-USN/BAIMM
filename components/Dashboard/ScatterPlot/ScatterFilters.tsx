@@ -86,7 +86,9 @@ export default function ScatterFilters({
       {visualization !== "heatmap" && (
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Municipality:</span>
+          <span className="text-sm font-medium text-gray-700">
+            Municipality:
+          </span>
           <div className="w-48">
             <Select
               options={municipalityOptions}

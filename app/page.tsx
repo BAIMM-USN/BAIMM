@@ -10,7 +10,6 @@ import type {
   Medication,
   Prediction,
   Municipality,
-  DataPoint,
 } from "../types/medication";
 import {
   fetchMedications,

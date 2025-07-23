@@ -4,7 +4,7 @@ import { X, Download, MapPin, History, FileText } from "lucide-react";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Select from "react-select";
-import { Municipality } from "@/types/medication";
+import { Municipality, Prediction } from "@/types/medication";
 
 type MunicipalityOption = { label: string; value: string };
 
@@ -31,11 +31,11 @@ export default function DownloadModal({
   onMedicationChange,
   onPredictionTypeChange,
 }: DownloadModalProps) {
-  const allMunicipalities: { id: string; name: string }[] =
-    typeof window !== "undefined" && (window as any).__ALL_MUNICIPALITIES__
-      ? (window as any).__ALL_MUNICIPALITIES__
-      : [];
-  console.log(availableMunicipalities, "all");
+  // const allMunicipalities: { id: string; name: string }[] =
+  //   typeof window !== "undefined" && (window as any).__ALL_MUNICIPALITIES__
+  //     ? (window as any).__ALL_MUNICIPALITIES__
+  //     : [];
+  // console.log(availableMunicipalities, "all");
 
   // Build options from availableMunicipalities prop (array of Municipality objects)
   const municipalityOptions: MunicipalityOption[] = availableMunicipalities.map(
@@ -88,64 +88,6 @@ export default function DownloadModal({
     if (onPredictionTypeChange) onPredictionTypeChange(val);
   };
 
-  const handleMunicipalityToggle = (municipality: string) => {
-    setSelectedMunicipalities((prev) =>
-      prev.includes(municipality)
-        ? prev.filter((m) => m !== municipality)
-        : [...prev, municipality]
-    );
-  };
-
-  // Update handleSelectAll to use ids
-  const handleSelectAll = () => {
-    setSelectedMunicipalities(
-      selectedMunicipalities.length === availableMunicipalities.length
-        ? []
-        : availableMunicipalities.map((m) => m.id)
-    );
-  };
-
-  const generateCSVData = () => {
-    const municipalities =
-      selectedMunicipalities.length > 0
-        ? selectedMunicipalities
-        : availableMunicipalities;
-
-    const headers = [
-      "Municipality",
-      "Demand (units)",
-      "Change (%)",
-      ...(includeConfidence ? ["Confidence (%)"] : []),
-      ...(includeOutliers ? ["Outlier Status"] : []),
-      "Date Range",
-      "Medication",
-      "Prediction Type",
-    ];
-
-    const rows = municipalities.map((municipality) => {
-      // Generate mock data for demonstration
-      const demand = Math.floor(Math.random() * 900) + 100;
-      const change = (Math.random() - 0.5) * 40; // -20% to +20%
-      const confidence = Math.floor(Math.random() * 20) + 80; // 80-100%
-      const isOutlier = Math.random() > 0.8;
-
-      const row = [
-        municipality,
-        demand.toString(),
-        change.toFixed(1),
-        ...(includeConfidence ? [confidence.toString()] : []),
-        ...(includeOutliers ? [isOutlier ? "High Outlier" : "Normal"] : []),
-        selectedHistoryPeriod,
-        selectedMedication,
-        predictionType.charAt(0).toUpperCase() + predictionType.slice(1),
-      ];
-
-      return row;
-    });
-
-    return [headers, ...rows];
-  };
-
   const handleDownload = async () => {
     setIsDownloading(true);
 
@@ -168,16 +110,15 @@ export default function DownloadModal({
 
     const predsSnap = await getDocs(predsQuery);
     // Map municipalityId to prediction data
-    const predMap: { [mun: string]: any } = {};
+    const predMap: Record<string, Prediction> = {};
     predsSnap.forEach((doc) => {
-      const data = doc.data();
-      predMap[data.municipalityId] = data;
+      const data = doc.data() as Prediction;
+      predMap[data.municipalityId ?? ""] = data;
     });
 
     const headers = [
       "Municipality",
       "Demand (units)",
-      "Change (%)",
       ...(includeConfidence ? ["Confidence (%)"] : []),
       ...(includeOutliers ? ["Outlier Status"] : []),
       "Date Range",
@@ -190,17 +131,14 @@ export default function DownloadModal({
       const pred = predMap[municipalityId];
       // Use real demand value if available, otherwise blank
       const demand = pred ? pred.predictedValue ?? pred.y ?? "" : "";
-      const change = pred && typeof pred.change === "number" ? pred.change : "";
       const confidence =
         pred && typeof pred.confidence === "number" ? pred.confidence : "";
-      const isOutlier = pred && pred.isOutlier ? "High Outlier" : "Normal";
+      // const isOutlier = pred && pred.isOutlier ? "High Outlier" : "Normal";
 
       const row = [
         municipalityId,
         demand.toString(),
-        change.toString(),
         ...(includeConfidence ? [confidence.toString()] : []),
-        ...(includeOutliers ? [isOutlier] : []),
         selectedHistoryPeriod,
         localMedication,
         localPredictionType.charAt(0).toUpperCase() +
@@ -334,7 +272,11 @@ export default function DownloadModal({
                 value={selectedMunicipalityOptions}
                 onChange={(selected) =>
                   setSelectedMunicipalityOptions(
-                    Array.isArray(selected) ? selected : selected ? [selected] : []
+                    Array.isArray(selected)
+                      ? selected
+                      : selected
+                      ? [selected]
+                      : []
                   )
                 }
                 isMulti
@@ -453,3 +395,4 @@ export default function DownloadModal({
     </div>
   );
 }
+

@@ -50,31 +50,9 @@ export default function MedicationDemandMap({
   const mapRef = useRef<L.Map>(null);
   const [open, setOpen] = useState(true);
   const [demand, setDemand] = useState<DemandMap>({});
-  const [weeklyPredictions, setWeeklyPredictions] = useState<Prediction[]>([]);
-  const [monthlyPredictions, setMonthlyPredictions] = useState<Prediction[]>(
-    []
-  );
   const [top10Increases, setTop10Increases] = useState<
     { kommunenavn: string; increase: number }[]
   >([]);
-  // const [selectedMedication, setSelectedMedication] = useState<string>("");
-
-  // Fetch all medications for dropdown
-  const [medications, setMedications] = useState<
-    { id: string; name: string }[]
-  >([]);
-  useEffect(() => {
-    async function fetchMeds() {
-      const medsSnap = await getDocs(collection(db, "medications"));
-      const meds = medsSnap.docs.map(
-        (doc) => doc.data() as { id: string; name: string }
-      );
-      setMedications(meds);
-      //   if (meds.length > 0 && !selectedMedication)
-      //     setSelectedMedication(meds[0].id);
-    }
-    fetchMeds();
-  }, []);
 
   // Fetch demand values for week 4 (weekly) or month 3 (monthly) from Firestore (for coloring the map)
   useEffect(() => {
@@ -236,7 +214,7 @@ export default function MedicationDemandMap({
   useEffect(() => {
     if (!selectedMedication) return;
     async function fetchIncreases() {
-      let increases: { municipalityId: string; increase: number }[] = [];
+      const increases: { municipalityId: string; increase: number }[] = [];
       if (predictionType === "monthly") {
         // Monthly: get month 2 and month 3 for selected medication
         const monthlySnap = await getDocs(
@@ -265,9 +243,6 @@ export default function MedicationDemandMap({
             increases.push({ municipalityId: mun, increase: inc });
           }
         });
-        setMonthlyPredictions(
-          monthlySnap.docs.map((doc) => doc.data() as Prediction)
-        );
       } else {
         // Weekly: get week 3 and week 4 for selected medication
         const weeklySnap = await getDocs(
@@ -293,13 +268,10 @@ export default function MedicationDemandMap({
           const inc = week4Map[mun] - (week3Map[mun] || 0);
           increases.push({ municipalityId: mun, increase: inc });
         });
-        setWeeklyPredictions(
-          weeklySnap.docs.map((doc) => doc.data() as Prediction)
-        );
       }
 
       // Map municipalityId to name using geoData if available
-      let idToName: { [id: string]: string } = {};
+      const idToName: { [id: string]: string } = {};
       if (geoData) {
         geoData.features.forEach((f) => {
           const id = (f.properties.kommunenummer || f.properties.id || "")
@@ -527,3 +499,4 @@ export default function MedicationDemandMap({
     </div>
   );
 }
+            

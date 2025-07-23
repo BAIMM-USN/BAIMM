@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import {
   TrendingUp,
@@ -14,7 +14,7 @@ import ScatterChart from "./ScatterPlot/ScatterChart";
 import ScatterStats from "./ScatterPlot/ScatterStats";
 import ScatterFilters from "./ScatterPlot/ScatterFilters";
 import DownloadModal from "./DownloadModal";
-import type { GeoJsonObject, Feature, Geometry } from "geojson";
+// import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { Municipality, DataPoint } from "../../types/medication";
 
 // Dynamically import the map component to avoid SSR issues
@@ -57,7 +57,6 @@ export default function ScatterPlot({
   predictionType,
   onPredictionTypeChange,
   isLoggedIn,
-  onLoginClick,
   selectedMunicipality: selectedMunicipalityProp,
   setSelectedMunicipality: setSelectedMunicipalityProp,
 }: ScatterPlotProps) {
@@ -99,47 +98,11 @@ export default function ScatterPlot({
     staticHistoryPeriods[0]
   );
   const [municipalitySearch, setMunicipalitySearch] = useState<string>("");
-  const [geoData, setGeoData] = useState<GeoJSONData | null>(null);
+ 
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
-  interface MunicipalityProperties {
-    kommunenummer: string;
-    kommunenavn: string;
-    id?: string;
-    name?: string;
-  }
-
-  type MunicipalityFeature = Feature<Geometry, MunicipalityProperties>;
-
-  interface GeoJSONData extends GeoJsonObject {
-    type: "FeatureCollection";
-    features: MunicipalityFeature[];
-  }
-
-  // Load geojson data on mount
-  useEffect(() => {
-    fetch("/Kommuner-M.geojson")
-      .then((res) => res.json())
-      .then((data: GeoJSONData) => {
-        setGeoData(data);
-      })
-      .catch((error) => {
-        console.error("Error loading GeoJSON data:", error);
-      });
-  }, []);
-
-  // Extract municipality names from geoData
-  const geoMunicipalities: string[] = React.useMemo(() => {
-    if (!geoData || typeof geoData !== "object" || !("features" in geoData))
-      return [];
-    const features = (
-      geoData as { features: Array<{ properties?: { kommunenavn?: string } }> }
-    ).features;
-    return features
-      .map((f) => f.properties?.kommunenavn)
-      .filter((name): name is string => Boolean(name))
-      .sort((a, b) => a.localeCompare(b));
-  }, [geoData]);
+ 
+ 
 
   const getDisplayData = (): DataPoint[] => {
     switch (viewMode) {

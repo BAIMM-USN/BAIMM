@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, X, Info } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
 interface DataPoint {
   x: number;
