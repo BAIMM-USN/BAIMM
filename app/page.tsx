@@ -6,16 +6,13 @@ import Header from "../components/Dashboard/Header";
 import MedicationSelector from "../components/Dashboard/MedicationSelector";
 import ScatterPlot from "../components/Dashboard/ScatterPlot";
 import ResearchInfo from "../components/Dashboard/ResearchInfo";
-import type {
-  Medication,
-  Prediction,
-  Municipality,
-} from "../types/medication";
+import type { Medication, Prediction, Municipality } from "../types/medication";
 import {
   fetchMedications,
   fetchPredictions,
   fetchMunicipalities,
 } from "../utils/firestore";
+import { ApiIntegrationGuide } from "@/components/Dashboard/apiIntegration";
 
 function App() {
   const { user, isLoading, login, signup, logout, isAuthenticated } = useAuth();
@@ -88,6 +85,7 @@ function App() {
 
   // Track selected municipality by id
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
+
   useEffect(() => {
     if (municipalitiesData.length > 0 && !selectedMunicipality) {
       setSelectedMunicipality(municipalitiesData[0].id);
@@ -243,11 +241,28 @@ function App() {
       </div>
     );
   }
+  if (user) {
+    user.getIdToken().then((token) => {
+      console.log("Your Firebase ID token:", token);
+    });
+  }
 
   // Common dashboard content component
   const DashboardContent = ({ showLoginButton = false }) => {
     const currentMedicationId =
       selectedMedication || medicationsData[0]?.id || "";
+
+    // Your Firebase client config (safe to share)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCr7lo2u_wTjODERWRcasdjxbsQ2Wvmeac",
+      authDomain: "baimm-58404.firebaseapp.com",
+      projectId: "baimm-58404",
+      storageBucket: "baimm-58404.firebaseapp.com",
+      messagingSenderId: "561212997161",
+      appId: "1:561212997161:web:5d6f423a7555cb6a422638",
+    };
+
+    
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -297,8 +312,14 @@ function App() {
               isLoggedIn={isAuthenticated}
             />
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <ResearchInfo />
+            {user && (
+              <ApiIntegrationGuide
+                firebaseConfig={firebaseConfig}
+                apiEndpoint="https://baimm.vercel.app/api/predict"
+              />
+            )}
           </div>
         </div>
       </div>
@@ -314,7 +335,6 @@ function App() {
         onSignup={handleSignup}
         loading={modalLoading}
       />
-
       {isAuthenticated ? (
         <DashboardContent />
       ) : (
