@@ -95,10 +95,10 @@ export default function MedicationDemandMap({
       .then((data: GeoJSONData) => {
         setGeoData(data);
       });
-    console.log(
-      geoData?.features?.map((feature) => feature.properties.kommunenummer),
-      geoData?.features?.map((feature) => feature.properties.name)
-    );
+    // console.log(
+    //   geoData?.features?.map((feature) => feature.properties.kommunenummer),
+    //   geoData?.features?.map((feature) => feature.properties.name)
+    // );
   }, []);
 
   // Zoom to bounds after geoData is loaded

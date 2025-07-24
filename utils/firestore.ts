@@ -17,7 +17,7 @@ export async function fetchMedications(): Promise<Medication[]> {
       if (isMedication(data)) {
         medications.push(data);
       } else {
-        console.warn("Invalid medication data:", data);
+        // console.warn("Invalid medication data:", data);
         // Try to salvage the data by providing defaults
         if (typeof data.id === "string" && typeof data.name === "string") {
           medications.push({
@@ -38,7 +38,7 @@ export async function fetchMedications(): Promise<Medication[]> {
 
     return medications;
   } catch (error) {
-    console.error("Error fetching medications:", error);
+    // console.error("Error fetching medications:", error);
     return [];
   }
 }
@@ -51,12 +51,12 @@ export async function fetchPredictions(): Promise<Prediction[]> {
     snapshot.docs.forEach((doc) => {
       const data: any = { id: doc.id, ...doc.data() }; // Use 'any' to avoid TS errors for missing props
       // Log the data structure for debugging
-      console.log("Fetched prediction data:", data);
+      // console.log("Fetched prediction data:", data);
 
       if (isPrediction(data)) {
         predictions.push(data);
       } else {
-        console.warn("Invalid prediction data:", data);
+        // console.warn("Invalid prediction data:", data);
         // Try to salvage the data if it has the essential fields
         if (
           typeof data.id === "string" &&
@@ -81,15 +81,15 @@ export async function fetchPredictions(): Promise<Prediction[]> {
             weatherParams: data.weatherParams,
           };
           predictions.push(salvaged);
-          console.log("Salvaged prediction data:", salvaged);
+          // console.log("Salvaged prediction data:", salvaged);
         }
       }
     });
 
-    console.log(`Successfully fetched ${predictions.length} predictions`);
+    // console.log(`Successfully fetched ${predictions.length} predictions`);
     return predictions;
   } catch (error) {
-    console.error("Error fetching predictions:", error);
+    // console.error("Error fetching predictions:", error);
     return [];
   }
 }
@@ -104,7 +104,7 @@ export async function fetchMunicipalities(): Promise<Municipality[]> {
       if (isMunicipality(data)) {
         municipalities.push(data);
       } else {
-        console.warn("Invalid municipality data:", data);
+        // console.warn("Invalid municipality data:", data);
         // Try to salvage the data by providing defaults
         if (typeof data.id === "string" && typeof data.name === "string") {
           municipalities.push({
@@ -118,7 +118,7 @@ export async function fetchMunicipalities(): Promise<Municipality[]> {
 
     return municipalities;
   } catch (error) {
-    console.error("Error fetching municipalities:", error);
+    // console.error("Error fetching municipalities:", error);
     return [];
   }
 }

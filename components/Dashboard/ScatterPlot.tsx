@@ -86,7 +86,7 @@ export default function ScatterPlot({
 
   // For filters, show names but store id
   const municipalityNames = availableMunicipalities.map((m) => m.name);
-  console.log(availableMunicipalities);
+  // console.log(availableMunicipalities);
 
   // Static history period options for the filter (not tied to data)
   const staticHistoryPeriods =
