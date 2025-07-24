@@ -17,6 +17,7 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
     const scriptId = "google-translate-script";
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
+      console.log(isTranslateLoaded)
       script.id = scriptId;
       script.src =
         "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
@@ -87,7 +88,7 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-0">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-3">
             <div className="bg-blue-100 rounded-lg p-2">
