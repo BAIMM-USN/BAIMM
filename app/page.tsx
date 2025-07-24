@@ -1,69 +1,78 @@
-"use client"
-import { useState, useEffect } from "react"
-import { useAuth } from "../hooks/useAuth"
-import LoginModal from "../components/Auth/LoginForm"
-import Header from "../components/Dashboard/Header"
-import MedicationSelector from "../components/Dashboard/MedicationSelector"
-import ScatterPlot from "../components/Dashboard/ScatterPlot"
-import ResearchInfo from "../components/Dashboard/ResearchInfo"
-import type { Medication, Prediction, Municipality } from "../types/medication"
-import { fetchMedications, fetchPredictions, fetchMunicipalities } from "../utils/firestore"
+"use client";
+import { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import LoginModal from "../components/Auth/LoginForm";
+import Header from "../components/Dashboard/Header";
+import MedicationSelector from "../components/Dashboard/MedicationSelector";
+import ScatterPlot from "../components/Dashboard/ScatterPlot";
+import ResearchInfo from "../components/Dashboard/ResearchInfo";
+import type { Medication, Prediction, Municipality } from "../types/medication";
+import {
+  fetchMedications,
+  fetchPredictions,
+  fetchMunicipalities,
+} from "../utils/firestore";
+import { ApiIntegrationGuide } from "@/components/Dashboard/apiIntegration";
 
 function App() {
-  const { user, isLoading, login, signup, logout, isAuthenticated } = useAuth()
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  const [selectedMedication, setSelectedMedication] = useState("")
-  const [predictionType, setPredictionType] = useState<"weekly" | "monthly">("weekly")
-  const [modalLoading, setModalLoading] = useState(false)
+  const { user, isLoading, login, signup, logout, isAuthenticated } = useAuth();
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [selectedMedication, setSelectedMedication] = useState("");
+  const [predictionType, setPredictionType] = useState<"weekly" | "monthly">(
+    "weekly"
+  );
+  const [modalLoading, setModalLoading] = useState(false);
 
   // Hydration-safe mounting state
-  const [isMounted, setIsMounted] = useState(false)
+  const [isMounted, setIsMounted] = useState(false);
 
   // Data states with proper typing
-  const [medicationsData, setMedicationsData] = useState<Medication[]>([])
-  const [predictionsData, setPredictionsData] = useState<Prediction[]>([])
-  const [municipalitiesData, setMunicipalitiesData] = useState<Municipality[]>([])
-  const [loadingData, setLoadingData] = useState(true)
-  const [dataError, setDataError] = useState<string | null>(null)
+  const [medicationsData, setMedicationsData] = useState<Medication[]>([]);
+  const [predictionsData, setPredictionsData] = useState<Prediction[]>([]);
+  const [municipalitiesData, setMunicipalitiesData] = useState<Municipality[]>(
+    []
+  );
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   // Handle hydration by ensuring client-only rendering after mount
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
 
   // Fetch data with proper error handling
   useEffect(() => {
     async function fetchData() {
-      if (!isMounted) return
+      if (!isMounted) return;
 
-      setLoadingData(true)
-      setDataError(null)
+      setLoadingData(true);
+      setDataError(null);
 
       try {
         const [medications, predictions, municipalities] = await Promise.all([
           fetchMedications(),
           fetchPredictions(),
           fetchMunicipalities(),
-        ])
+        ]);
 
-        setMedicationsData(medications)
-        setPredictionsData(predictions)
-        setMunicipalitiesData(municipalities)
+        setMedicationsData(medications);
+        setPredictionsData(predictions);
+        setMunicipalitiesData(municipalities);
 
         // Set initial medication if none selected
         if (medications.length > 0 && !selectedMedication) {
-          setSelectedMedication(medications[0].id)
+          setSelectedMedication(medications[0].id);
         }
       } catch (error) {
-        console.error("Error fetching data:", error)
-        setDataError("Failed to load data. Please try again.")
+        console.error("Error fetching data:", error);
+        setDataError("Failed to load data. Please try again.");
       } finally {
-        setLoadingData(false)
+        setLoadingData(false);
       }
     }
 
-    fetchData()
-  }, [isMounted, selectedMedication])
+    fetchData();
+  }, [isMounted, selectedMedication]);
 
   // Map Firebase user to expected Header user shape
   const headerUser =
@@ -72,20 +81,24 @@ function App() {
           name: user.displayName || user.email.split("@")[0],
           email: user.email,
         }
-      : null
+      : null;
 
   // Track selected municipality by id
-  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("")
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
 
   useEffect(() => {
     if (municipalitiesData.length > 0 && !selectedMunicipality) {
-      setSelectedMunicipality(municipalitiesData[0].id)
+      setSelectedMunicipality(municipalitiesData[0].id);
     }
-  }, [municipalitiesData, selectedMunicipality])
+  }, [municipalitiesData, selectedMunicipality]);
 
   // Helper to get predictions for selected medication and selected municipality (by id)
-  function getPredictionData(medicationId: string, predictionType: "weekly" | "monthly", municipalityId?: string) {
-    if (!medicationId || !municipalityId) return { upcoming: [], previous: [] }
+  function getPredictionData(
+    medicationId: string,
+    predictionType: "weekly" | "monthly",
+    municipalityId?: string
+  ) {
+    if (!medicationId || !municipalityId) return { upcoming: [], previous: [] };
 
     const filtered = predictionsData
       .filter(
@@ -94,16 +107,17 @@ function App() {
           p.periodType === predictionType &&
           // Accept both id and name for robustness
           (p.municipalityId === municipalityId ||
-            municipalitiesData.find((m) => m.id === municipalityId)?.name === p.municipalityId),
+            municipalitiesData.find((m) => m.id === municipalityId)?.name ===
+              p.municipalityId)
       )
       .sort((a, b) =>
         predictionType === "weekly"
           ? (a.weekNumber || 0) - (b.weekNumber || 0)
-          : (a.monthNumber || 0) - (b.monthNumber || 0),
-      )
+          : (a.monthNumber || 0) - (b.monthNumber || 0)
+      );
 
     if (filtered.length === 0) {
-      return { upcoming: [], previous: [] }
+      return { upcoming: [], previous: [] };
     }
 
     // Use the last (latest) as the upcoming, previous are all before it
@@ -113,73 +127,91 @@ function App() {
           (predictionType === "weekly"
             ? filtered[filtered.length - 1].weekNumber
             : filtered[filtered.length - 1].monthNumber) || 0,
-        y: filtered[filtered.length - 1].predictedValue || filtered[filtered.length - 1].y || 0,
+        y:
+          filtered[filtered.length - 1].predictedValue ||
+          filtered[filtered.length - 1].y ||
+          0,
         label:
           predictionType === "weekly"
             ? `Week ${filtered[filtered.length - 1].weekNumber || 0}`
             : `Month ${filtered[filtered.length - 1].monthNumber || 0}`,
         weekNumber: filtered[filtered.length - 1].weekNumber,
         monthNumber: filtered[filtered.length - 1].monthNumber,
-        date: filtered[filtered.length - 1].date || new Date().toISOString().split("T")[0],
+        date:
+          filtered[filtered.length - 1].date ||
+          new Date().toISOString().split("T")[0],
         confidence: filtered[filtered.length - 1].confidence || 0,
       },
-    ]
+    ];
 
     const previous = filtered.slice(0, -1).map((p) => ({
       x: (predictionType === "weekly" ? p.weekNumber : p.monthNumber) || 0,
       y: p.predictedValue || p.y || 0,
-      label: predictionType === "weekly" ? `Week ${p.weekNumber || 0}` : `Month ${p.monthNumber || 0}`,
+      label:
+        predictionType === "weekly"
+          ? `Week ${p.weekNumber || 0}`
+          : `Month ${p.monthNumber || 0}`,
       weekNumber: p.weekNumber,
       monthNumber: p.monthNumber,
       date: p.date || new Date().toISOString().split("T")[0],
       confidence: p.confidence || 0,
-    }))
+    }));
 
-    return { upcoming, previous }
+    return { upcoming, previous };
   }
 
   // Update getAvailableHistoryPeriods to filter by selected municipality
-  function getAvailableHistoryPeriods(predictionType: "weekly" | "monthly"): string[] {
-    const medicationId = selectedMedication || medicationsData[0]?.id || ""
-    if (!medicationId || !selectedMunicipality) return []
+  function getAvailableHistoryPeriods(
+    predictionType: "weekly" | "monthly"
+  ): string[] {
+    const medicationId = selectedMedication || medicationsData[0]?.id || "";
+    if (!medicationId || !selectedMunicipality) return [];
 
     const filtered = predictionsData
       .filter(
         (p) =>
           p.medicationId === medicationId &&
           p.periodType === predictionType &&
-          p.municipalityId === selectedMunicipality,
+          p.municipalityId === selectedMunicipality
       )
       .sort((a, b) =>
         predictionType === "weekly"
           ? (a.weekNumber || 0) - (b.weekNumber || 0)
-          : (a.monthNumber || 0) - (b.monthNumber || 0),
-      )
+          : (a.monthNumber || 0) - (b.monthNumber || 0)
+      );
 
     return filtered
       .slice(1)
-      .map((p) => (predictionType === "weekly" ? `Week ${p.weekNumber || 0}` : `Month ${p.monthNumber || 0}`))
+      .map((p) =>
+        predictionType === "weekly"
+          ? `Week ${p.weekNumber || 0}`
+          : `Month ${p.monthNumber || 0}`
+      );
   }
 
   const handleLogin = async (email: string, password: string) => {
-    setModalLoading(true)
+    setModalLoading(true);
     try {
-      await login(email, password)
-      setIsLoginModalOpen(false)
+      await login(email, password);
+      setIsLoginModalOpen(false);
     } finally {
-      setModalLoading(false)
+      setModalLoading(false);
     }
-  }
+  };
 
-  const handleSignup = async (name: string, email: string, password: string) => {
-    setModalLoading(true)
+  const handleSignup = async (
+    name: string,
+    email: string,
+    password: string
+  ) => {
+    setModalLoading(true);
     try {
-      await signup(name, email, password)
-      setIsLoginModalOpen(false)
+      await signup(name, email, password);
+      setIsLoginModalOpen(false);
     } finally {
-      setModalLoading(false)
+      setModalLoading(false);
     }
-  }
+  };
 
   // Show loading until hydration is complete and auth is resolved
   if (!isMounted || isLoading || loadingData) {
@@ -190,7 +222,7 @@ function App() {
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   // Show error state
@@ -207,12 +239,36 @@ function App() {
           </button>
         </div>
       </div>
-    )
+    );
+  }
+  if (user) {
+    user.getIdToken().then((token) => {
+      console.log("Your Firebase ID token:", token);
+    });
   }
 
   // Common dashboard content component
   const DashboardContent = ({ showLoginButton = false }) => {
-    const currentMedicationId = selectedMedication || medicationsData[0]?.id || ""
+    const currentMedicationId =
+      selectedMedication || medicationsData[0]?.id || "";
+
+    const [apiSnippet, setApiSnippet] = useState("");
+    const [showSnippet, setShowSnippet] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [showConfig, setShowConfig] = useState(false);
+    const [copiedConfig, setCopiedConfig] = useState(false);
+
+    // Your Firebase client config (safe to share)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCr7lo2u_wTjODERWRcasdjxbsQ2Wvmeac",
+      authDomain: "baimm-58404.firebaseapp.com",
+      projectId: "baimm-58404",
+      storageBucket: "baimm-58404.firebaseapp.com",
+      messagingSenderId: "561212997161",
+      appId: "1:561212997161:web:5d6f423a7555cb6a422638",
+    };
+
+    
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -220,7 +276,9 @@ function App() {
           <Header
             user={showLoginButton ? null : headerUser}
             onLogout={logout}
-            onLoginClick={showLoginButton ? () => setIsLoginModalOpen(true) : undefined}
+            onLoginClick={
+              showLoginButton ? () => setIsLoginModalOpen(true) : undefined
+            }
           />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -232,17 +290,27 @@ function App() {
               isAuthenticated={isAuthenticated}
             />
             <ScatterPlot
-              data={getPredictionData(currentMedicationId, predictionType, selectedMunicipality)}
-              title={`${predictionType === "weekly" ? "Weekly" : "Monthly"} Medication Demand ${
+              data={getPredictionData(
+                currentMedicationId,
+                predictionType,
+                selectedMunicipality
+              )}
+              title={`${
+                predictionType === "weekly" ? "Weekly" : "Monthly"
+              } Medication Demand ${
                 isAuthenticated ? "Analysis" : "Prediction"
               }`}
-              xLabel={predictionType === "weekly" ? "Week Period" : "Month Period"}
+              xLabel={
+                predictionType === "weekly" ? "Week Period" : "Month Period"
+              }
               yLabel="Predicted Demand (units)"
               availableMedications={medicationsData.map((m) => m.name)}
               availableMunicipalities={municipalitiesData}
               selectedMunicipality={selectedMunicipality}
               setSelectedMunicipality={setSelectedMunicipality}
-              availableHistoryPeriods={getAvailableHistoryPeriods(predictionType)}
+              availableHistoryPeriods={getAvailableHistoryPeriods(
+                predictionType
+              )}
               onMedicationChange={setSelectedMedication}
               selectedMedication={currentMedicationId}
               predictionType={predictionType}
@@ -250,13 +318,19 @@ function App() {
               isLoggedIn={isAuthenticated}
             />
           </div>
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <ResearchInfo />
+            {user && (
+              <ApiIntegrationGuide
+                firebaseConfig={firebaseConfig}
+                apiEndpoint="https://baimm.vercel.app/api/predict"
+              />
+            )}
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -267,9 +341,13 @@ function App() {
         onSignup={handleSignup}
         loading={modalLoading}
       />
-      {isAuthenticated ? <DashboardContent /> : <DashboardContent showLoginButton={true} />}
+      {isAuthenticated ? (
+        <DashboardContent />
+      ) : (
+        <DashboardContent showLoginButton={true} />
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
