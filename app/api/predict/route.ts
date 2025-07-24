@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initializeApp, cert, getApps, App } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+// import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 // Only initialize once
@@ -17,7 +17,7 @@ if (!getApps().length) {
   adminApp = getApps()[0];
 }
 
-const auth = getAuth(adminApp);
+// const auth = getAuth(adminApp);
 const db = getFirestore(adminApp);
 
 export async function GET(req: NextRequest) {
@@ -28,24 +28,28 @@ export async function GET(req: NextRequest) {
       { status: 401 }
     );
   }
-  const idToken = authHeader.split(" ")[1];
+//   const idToken = authHeader.split(" ")[1];
   try {
-    const decodedToken = await auth.verifyIdToken(idToken);
-    const uid = decodedToken.uid;
+    // const decodedToken = await auth.verifyIdToken(idToken);
+    // const uid = decodedToken.uid;
     // Fetch predictions for this user from Firestore (adjust collection as needed)
-    const predictionsSnap = await db
-      .collection("predictions")
-      .get();
+    const predictionsSnap = await db.collection("predictions").get();
     const predictions = predictionsSnap.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
     return NextResponse.json({ predictions });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Unauthorized" },
-      { status: 401 }
-    );
+  } catch (error: unknown) {
+    let message = "Unauthorized";
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "message" in error &&
+      typeof (error as { message?: unknown }).message === "string"
+    ) {
+      message = (error as { message: string }).message;
+    }
+    return NextResponse.json({ error: message }, { status: 401 });
   }
 }
 

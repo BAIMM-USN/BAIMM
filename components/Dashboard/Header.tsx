@@ -31,18 +31,18 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
 
     return () => clearTimeout(timer)
   }, [])
-  const resetTranslateIfNeeded = () => {
-  const bannerFrame = document.querySelector('iframe.goog-te-banner-frame');
-  if (!bannerFrame) {
-    // If the top translate bar is gone, reinject the widget
-    const element = document.getElementById('google_translate_element');
-    if (element) element.innerHTML = ''; // Clear old instance
+//   const resetTranslateIfNeeded = () => {
+//   const bannerFrame = document.querySelector('iframe.goog-te-banner-frame');
+//   if (!bannerFrame) {
+//     // If the top translate bar is gone, reinject the widget
+//     const element = document.getElementById('google_translate_element');
+//     if (element) element.innerHTML = ''; // Clear old instance
 
-    if (typeof window.googleTranslateElementInit === 'function') {
-      window.googleTranslateElementInit();
-    }
-  }
-};
+//     if (typeof window.googleTranslateElementInit === 'function') {
+//       window.googleTranslateElementInit();
+//     }
+//   }
+// };
 // const handleLanguageChange = (langCode: string) => {
 //   resetTranslateIfNeeded(); // Reinitialize if needed
 

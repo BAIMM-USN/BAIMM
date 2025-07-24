@@ -13,8 +13,17 @@ import {
   Key,
 } from "lucide-react";
 
+type FirebaseConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
+  storageBucket: string;
+  messagingSenderId: string;
+  appId: string;
+};
+
 interface ApiIntegrationGuideProps {
-  firebaseConfig: Record<string, any>;
+  firebaseConfig: FirebaseConfig;
   apiEndpoint?: string;
 }
 
@@ -44,42 +53,11 @@ export function ApiIntegrationGuide({
       setCopiedConfig(true);
       setTimeout(() => setCopiedConfig(false), 2000);
     } catch (err) {
-      console.error("Failed to copy config:", err);
-    }
-  };
-
-  const handleShowApi = () => {
-    setShowSnippet(true);
-  };
-
-  const handleCopySnippet = async () => {
-    const apiSnippet = `// Example API call with Firebase Auth
-import { getAuth } from 'firebase/auth';
-
-const auth = getAuth();
-const user = auth.currentUser;
-
-if (user) {
-  const idToken = await user.getIdToken();
-  
-  const response = await fetch('${apiEndpoint}', {
-    method: 'GET',
-    headers: {
-      'Authorization': \`Bearer \${idToken}\`,
-      'Content-Type': 'application/json'
-    }
-  });
-  
-  const data = await response.json();
-  console.log(data);
-}`;
-
-    try {
-      await navigator.clipboard.writeText(apiSnippet);
-      setCopiedSnippet(true);
-      setTimeout(() => setCopiedSnippet(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy snippet:", err);
+      if (err instanceof Error) {
+        console.error("Failed to copy config:", err.message);
+      } else {
+        console.error("Failed to copy config:", err);
+      }
     }
   };
 
@@ -103,6 +81,24 @@ if (user) {
   const data = await response.json();
   console.log(data);
 }`;
+
+  const handleShowApi = () => {
+    setShowSnippet(true);
+  };
+
+  const handleCopySnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(apiSnippet);
+      setCopiedSnippet(true);
+      setTimeout(() => setCopiedSnippet(false), 2000);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error("Failed to copy snippet:", err.message);
+      } else {
+        console.error("Failed to copy snippet:", err);
+      }
+    }
+  };
 
   // Show button state
   if (!showGuide) {
@@ -142,7 +138,7 @@ if (user) {
         <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
           <div className="text-sm text-green-800 flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
-            <span className="font-semibold">API Access Granted</span> - You're
+            <span className="font-semibold">API Access Granted</span> - You are
             logged in and ready to integrate!
           </div>
         </div>

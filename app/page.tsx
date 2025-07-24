@@ -252,12 +252,6 @@ function App() {
     const currentMedicationId =
       selectedMedication || medicationsData[0]?.id || "";
 
-    const [apiSnippet, setApiSnippet] = useState("");
-    const [showSnippet, setShowSnippet] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const [showConfig, setShowConfig] = useState(false);
-    const [copiedConfig, setCopiedConfig] = useState(false);
-
     // Your Firebase client config (safe to share)
     const firebaseConfig = {
       apiKey: "AIzaSyCr7lo2u_wTjODERWRcasdjxbsQ2Wvmeac",
