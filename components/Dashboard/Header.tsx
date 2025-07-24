@@ -43,18 +43,18 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
     }
   }
 };
-const handleLanguageChange = (langCode: string) => {
-  resetTranslateIfNeeded(); // Reinitialize if needed
+// const handleLanguageChange = (langCode: string) => {
+//   resetTranslateIfNeeded(); // Reinitialize if needed
 
-  const select = document.querySelector<HTMLSelectElement>(
-    ".goog-te-combo"
-  );
+//   const select = document.querySelector<HTMLSelectElement>(
+//     ".goog-te-combo"
+//   );
 
-  if (select) {
-    select.value = langCode;
-    select.dispatchEvent(new Event("change"));
-  }
-};
+//   if (select) {
+//     select.value = langCode;
+//     select.dispatchEvent(new Event("change"));
+//   }
+// };
 
 
   return (

@@ -55,7 +55,7 @@ function App() {
           setSelectedMedication(medications[0].id)
         }
       } catch (error) {
-        // console.error("Error fetching data:", error)
+        console.error("Error fetching data:", error)
         setDataError("Failed to load data. Please try again.")
       } finally {
         setLoadingData(false)
