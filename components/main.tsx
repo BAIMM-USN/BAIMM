@@ -6,11 +6,7 @@ import Header from "../components/Dashboard/Header";
 import MedicationSelector from "../components/Dashboard/MedicationSelector";
 import ScatterPlot from "../components/Dashboard/ScatterPlot";
 import ResearchInfo from "../components/Dashboard/ResearchInfo";
-import type {
-  Medication,
-  Prediction,
-  Municipality,
-} from "../types/medication";
+import type { Medication, Prediction, Municipality } from "../types/medication";
 import {
   fetchMedications,
   fetchPredictions,
@@ -19,6 +15,11 @@ import {
 
 import { ApiIntegrationGuide } from "@/components/Dashboard/apiIntegration";
 import { useTranslation } from "react-i18next";
+// Add a simple in-memory cache (module-level, survives reloads in dev, but not across serverless invocations)
+let medicationsCache: Medication[] | null = null;
+let predictionsCache: Prediction[] | null = null;
+let municipalitiesCache: Municipality[] | null = null;
+
 export default function App() {
   const { user, isLoading, login, signup, logout, isAuthenticated } = useAuth();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -28,10 +29,8 @@ export default function App() {
   );
   const [modalLoading, setModalLoading] = useState(false);
 
-  // Hydration-safe mounting state
   const [isMounted, setIsMounted] = useState(false);
 
-  // Data states with proper typing
   const [medicationsData, setMedicationsData] = useState<Medication[]>([]);
   const [predictionsData, setPredictionsData] = useState<Prediction[]>([]);
   const [municipalitiesData, setMunicipalitiesData] = useState<Municipality[]>(
@@ -40,12 +39,9 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  // Handle hydration by ensuring client-only rendering after mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Fetch data with proper error handling
   useEffect(() => {
     async function fetchData() {
       if (!isMounted) return;
@@ -54,11 +50,25 @@ export default function App() {
       setDataError(null);
 
       try {
-        const [medications, predictions, municipalities] = await Promise.all([
-          fetchMedications(),
-          fetchPredictions(),
-          fetchMunicipalities(),
-        ]);
+        // Use cache if available
+        let medications = medicationsCache;
+        let predictions = predictionsCache;
+        let municipalities = municipalitiesCache;
+
+        if (!medications || !predictions || !municipalities) {
+          const [meds, preds, munis] = await Promise.all([
+            fetchMedications(),
+            fetchPredictions(),
+            fetchMunicipalities(),
+          ]);
+          medications = meds;
+          predictions = preds;
+          municipalities = munis;
+          // Store in cache
+          medicationsCache = medications;
+          predictionsCache = predictions;
+          municipalitiesCache = municipalities;
+        }
 
         setMedicationsData(medications);
         setPredictionsData(predictions);

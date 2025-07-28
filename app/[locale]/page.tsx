@@ -17,7 +17,6 @@ const i18nNamespaces = [
   "heatMap",
 ];
 
-// Server component to fetch translations and pass as props
 export default async function Page({
   params,
 }: {
@@ -37,5 +36,3 @@ export default async function Page({
   );
 }
 
-// Synchronous client component
-// Synchronous client component

@@ -49,9 +49,9 @@ export async function fetchPredictions(): Promise<Prediction[]> {
     const predictions: Prediction[] = [];
 
     snapshot.docs.forEach((doc) => {
-      const data: any = { id: doc.id, ...doc.data() }; // Use 'any' to avoid TS errors for missing props
-      // Log the data structure for debugging
-      // console.log("Fetched prediction data:", data);
+      const data: any = { id: doc.id, ...doc.data() }; 
+     
+    
 
       if (isPrediction(data)) {
         predictions.push(data);
