@@ -1,0 +1,19 @@
+{
+  "exportData": "Eksporter data",
+  "configureExport": "Konfigurer innstillingene for dataeksport",
+  "customizeSelection": "Tilpass utvalg",
+  "medication": "Medisin",
+  "predictionType": "Prognosetype",
+  "weekly": "Ukentlig",
+  "monthly": "Månedlig",
+  "municipality": "Kommune",
+  "selectMunicipality": "Velg kommune...",
+  "historyPeriod": "Historisk periode",
+  "additionalData": "Tilleggsdata",
+  "includeConfidence": "Inkluder konfidensnivåer",
+  "includeOutliers": "Inkluder avviksdeteksjon",
+  "exportFormat": "Eksportformat: CSV • Filstørrelse: ~",
+  "cancel": "Avbryt",
+  "preparing": "Forbereder...",
+  "downloadCsv": "Last ned CSV"
+}

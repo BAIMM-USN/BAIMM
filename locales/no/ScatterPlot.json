@@ -1,0 +1,8 @@
+{"Export":"Eksporter CSV","HeatMap":" Varmekart","Next":"Neste","Previous":" Tidligere","Scatter":"Spre","Trend":"Trendvisning" , 
+"previousWeeks": "Forrige uker ({{period}})",
+  "previousMonths": "Forrige måneder ({{period}})",
+  "nextWeekPrediction": "Neste ukes prediksjon for {{medication}}",
+  "nextMonthPrediction": "Neste måneds prediksjon for {{medication}}",
+  "weeklyTrendAnalysis": "Ukentlig trendanalyse: {{medication}} i {{municipality}}",
+  "monthlyTrendAnalysis": "Månedlig trendanalyse: {{medication}} i {{municipality}}"
+}

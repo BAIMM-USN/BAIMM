@@ -1,0 +1,9 @@
+{
+  "historicalRange": "Historisk område",
+  "demandRange": "Etterspørselsområde",
+  "nextPrediction": "Neste {{period}} prognose",
+  "selectedMedication": "Valgt medikament",
+  "municipality": "Kommune",
+  "noPrediction": "Ingen prognose",
+  "units": "enheter"
+}

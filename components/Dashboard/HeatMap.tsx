@@ -7,6 +7,7 @@ import L from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { useTranslation } from "react-i18next";
 
 interface MunicipalityProperties {
   kommunenummer: string;
@@ -53,6 +54,7 @@ export default function MedicationDemandMap({
   const [top10Increases, setTop10Increases] = useState<
     { kommunenavn: string; increase: number }[]
   >([]);
+  const { t } = useTranslation("heatMap");
 
   // Fetch demand values for week 4 (weekly) or month 3 (monthly) from Firestore (for coloring the map)
   useEffect(() => {
@@ -352,7 +354,7 @@ export default function MedicationDemandMap({
       {/* Map Legend */}
       <div className="absolute bottom-4 left-4 bg-white p-4 rounded-xl shadow-lg border border-gray-200 w-max">
         <h3 className="text-sm font-semibold text-gray-800 mb-3">
-          Demand Level
+          {t("demandLevel")}
         </h3>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-gray-700">
           {predictionType === "monthly" ? (
@@ -457,7 +459,7 @@ export default function MedicationDemandMap({
           aria-expanded={open}
           aria-controls="top10-panel"
         >
-          <span>🔺 Top 10 Demand Increases</span>
+          <span>{t("top10Increases")}</span>
           <svg
             className={`w-4 h-4 transform transition-transform duration-200 ${
               open ? "rotate-180" : ""
@@ -499,4 +501,3 @@ export default function MedicationDemandMap({
     </div>
   );
 }
-            

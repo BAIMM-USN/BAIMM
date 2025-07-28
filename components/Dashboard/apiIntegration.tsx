@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Key,
 } from "lucide-react";
+import { useTranslation } from "react-i18next"; // <-- Add this line
 
 type FirebaseConfig = {
   apiKey: string;
@@ -35,6 +36,7 @@ export function ApiIntegrationGuide({
   const [copiedConfig, setCopiedConfig] = useState(false);
   const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [showSnippet, setShowSnippet] = useState(false);
+  const { t } = useTranslation("apiIntegrationGuide"); // <-- Use the translation
 
   const handleGetApi = () => {
     setShowGuide(true);
@@ -108,7 +110,7 @@ if (user) {
         className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors duration-200"
       >
         <Key className="w-4 h-4 mr-2" />
-        Get API Access
+        {t("getApiAccess")}
       </button>
     );
   }
@@ -120,7 +122,7 @@ if (user) {
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
         <h1 className="flex items-center gap-2 text-lg font-semibold">
           <Code className="w-5 h-5" />
-          API Integration Guide
+          {t("apiIntegrationGuide")}
         </h1>
         <button
           onClick={handleCloseGuide}
@@ -138,8 +140,8 @@ if (user) {
         <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
           <div className="text-sm text-green-800 flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
-            <span className="font-semibold">API Access Granted</span> - You are
-            logged in and ready to integrate!
+            <span className="font-semibold">{t("apiAccessGranted")}</span> -{" "}
+            {t("apiReady")}
           </div>
         </div>
 
@@ -152,11 +154,9 @@ if (user) {
             <div className="flex-1 space-y-3">
               <div className="font-semibold text-gray-800 flex items-center gap-2">
                 <Settings className="w-4 h-4" />
-                Add Firebase to your project
+                {t("step1")}
               </div>
-              <div className="text-gray-700">
-                Use this config in your Firebase initialization:
-              </div>
+              <div className="text-gray-700">{t("step1Description")}</div>
               <div className="space-y-2">
                 <pre
                   className="bg-gray-100 p-3 rounded-md text-xs border border-gray-200 font-mono overflow-x-auto max-w-full"
@@ -175,12 +175,12 @@ if (user) {
                   {copiedConfig ? (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Copied!
+                      {t("copied")}
                     </>
                   ) : (
                     <>
                       <Copy className="w-4 h-4 mr-2" />
-                      Copy Config
+                      {t("copyConfig")}
                     </>
                   )}
                 </button>
@@ -196,12 +196,9 @@ if (user) {
             <div className="flex-1">
               <div className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Authenticate with Firebase Auth
+                {t("step2")}
               </div>
-              <div className="text-gray-700">
-                Set up authentication (e.g., email/password, Google, etc.) in
-                your system.
-              </div>
+              <div className="text-gray-700">{t("step2Description")}</div>
             </div>
           </li>
 
@@ -213,7 +210,7 @@ if (user) {
             <div className="flex-1 space-y-3">
               <div className="font-semibold text-gray-800 flex items-center gap-2">
                 <Zap className="w-4 h-4" />
-                Call the API with your ID token
+                {t("step3")}
               </div>
               <div className="space-y-2">
                 <button
@@ -221,7 +218,7 @@ if (user) {
                   className="inline-flex items-center px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                 >
                   <Code className="w-4 h-4 mr-2" />
-                  Generate My API Example
+                  {t("generateApiExample")}
                 </button>
                 {showSnippet && (
                   <div className="space-y-2">
@@ -242,12 +239,12 @@ if (user) {
                       {copiedSnippet ? (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          Copied!
+                          {t("copied")}
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4 mr-2" />
-                          Copy to Clipboard
+                          {t("copyToClipboard")}
                         </>
                       )}
                     </button>
@@ -260,12 +257,11 @@ if (user) {
 
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
           <div className="text-xs text-blue-800">
-            <span className="font-semibold">Note:</span> Your ID token is
-            short-lived and user-specific. Always authenticate and get a fresh
-            token before calling the API.
+            <span className="font-semibold">{t("note")}:</span> {t("idTokenNote")}
           </div>
         </div>
       </div>
     </div>
   );
 }
+        

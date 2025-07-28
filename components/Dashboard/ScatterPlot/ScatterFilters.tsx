@@ -2,6 +2,7 @@
 import React from "react";
 import { Calendar, MapPin, History } from "lucide-react";
 import Select from "react-select";
+import { useTranslation } from "react-i18next";
 
 interface ScatterFiltersProps {
   predictionType: "weekly" | "monthly";
@@ -28,13 +29,15 @@ export default function ScatterFilters({
   setSelectedHistoryPeriod,
   visualization,
 }: ScatterFiltersProps) {
+  const { t } = useTranslation("ScatterFilters");
+
   const municipalityOptions = availableMunicipalities.map((municipality) => ({
     label: municipality,
     value: municipality,
   }));
   const predictionOptions = [
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
+    { value: "weekly", label: t("weekly") },
+    { value: "monthly", label: t("monthly") },
   ];
   const filteredHistoryOptions = availableHistoryPeriods
     .filter((period) => {
@@ -51,7 +54,9 @@ export default function ScatterFilters({
       {/* Prediction Type Selector */}
       <div className="flex items-center gap-2">
         <Calendar className="w-4 h-4 text-gray-600" />
-        <span className="text-sm font-medium text-gray-700">Prediction:</span>
+        <span className="text-sm font-medium text-gray-700">
+          {t("predictionLabel")}:
+        </span>
         <div className="w-24">
           <Select
             options={predictionOptions}
@@ -87,7 +92,7 @@ export default function ScatterFilters({
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-gray-600" />
           <span className="text-sm font-medium text-gray-700">
-            Municipality:
+            {t("municipalityLabel")}:
           </span>
           <div className="w-48">
             <Select
@@ -98,7 +103,7 @@ export default function ScatterFilters({
               onChange={(selected) =>
                 selected && setSelectedMunicipality(selected.value)
               }
-              placeholder="Select municipality..."
+              placeholder={t("selectMunicipality")}
               isSearchable
               styles={{
                 control: (base) => ({
@@ -117,7 +122,9 @@ export default function ScatterFilters({
       {visualization !== "heatmap" && (
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">History:</span>
+          <span className="text-sm font-medium text-gray-700">
+            {t("historyLabel")}:
+          </span>
           <div className="w-36">
             <Select
               options={filteredHistoryOptions}
@@ -128,7 +135,7 @@ export default function ScatterFilters({
                 selected && setSelectedHistoryPeriod(selected.value)
               }
               isSearchable={false}
-              placeholder="Select history..."
+              placeholder={t("selectHistory")}
               styles={{
                 control: (base) => ({
                   ...base,

@@ -1,0 +1,9 @@
+{
+    "historicalRange": "Historical Range",
+    "demandRange": "Demand Range",
+    "nextPrediction": "Next {{period}} Prediction",
+    "selectedMedication": "Selected Medication",
+    "municipality": "Municipality",
+    "noPrediction": "No prediction",
+    "units": "units"
+}

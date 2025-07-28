@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { X, User, Lock, Mail, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function LoginModal({
     password: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation("login");
 
   if (!isOpen) return null;
 
@@ -72,13 +74,9 @@ export default function LoginModal({
               <User className="w-8 h-8 text-blue-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              {authMode === "login" ? "Welcome Back" : "Create Account"}
+              {t(`title.${authMode}`)}
             </h1>
-            <p className="text-gray-600">
-              {authMode === "login"
-                ? "Sign in to access all medication predictions"
-                : "Join to unlock full access to predictions"}
-            </p>
+            <p className="text-gray-600">{t(`subtitle.${authMode}`)}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -88,7 +86,7 @@ export default function LoginModal({
             {authMode === "signup" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
+                  {t("input.name.label")}
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -99,7 +97,7 @@ export default function LoginModal({
                       setFormData({ ...formData, name: e.target.value })
                     }
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Enter your full name"
+                    placeholder={t("input.name.placeholder")}
                     required
                   />
                 </div>
@@ -108,7 +106,7 @@ export default function LoginModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                {t("input.email.label")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -119,7 +117,7 @@ export default function LoginModal({
                     setFormData({ ...formData, email: e.target.value })
                   }
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your email"
+                  placeholder={t("input.email.placeholder")}
                   required
                 />
               </div>
@@ -127,7 +125,7 @@ export default function LoginModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                {t("input.password.label")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -140,8 +138,8 @@ export default function LoginModal({
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   placeholder={
                     authMode === "login"
-                      ? "Enter your password"
-                      : "Create a password"
+                      ? t("input.password.placeholder.login")
+                      : t("input.password.placeholder.signup")
                   }
                   required
                 />
@@ -174,11 +172,13 @@ export default function LoginModal({
                       d="M4 12a8 8 0 018-8v8z"
                     />
                   </svg>
-                  Processing...
+                  {t("button.loading")}
                 </span>
               ) : (
                 <>
-                  {authMode === "login" ? "Sign In" : "Create Account"}
+                  {authMode === "login"
+                    ? t("button.signin")
+                    : t("button.signup")}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -187,16 +187,16 @@ export default function LoginModal({
 
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              {authMode === "login"
-                ? "Don't have an account?"
-                : "Already have an account?"}{" "}
+              {t(`toggleText.${authMode}`)}{" "}
               <button
                 onClick={() =>
                   setAuthMode(authMode === "login" ? "signup" : "login")
                 }
                 className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
               >
-                {authMode === "login" ? "Sign up" : "Sign in"}
+                {authMode === "login"
+                  ? t("toggleButton.signup")
+                  : t("toggleButton.login")}
               </button>
             </p>
           </div>

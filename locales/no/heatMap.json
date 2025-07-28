@@ -1,0 +1,17 @@
+{
+  "top10Increases": "🔺 Topp 10 etterspørselsøkninger",
+  "demandLevel": "Etterspørselsnivå",
+  "demand": "Etterspørsel",
+  "unknown": "Ukjent",
+  "week": "Uke",
+  "weeks": "Uker",
+  "month": "Måned",
+  "months": "Måneder",
+  "previousWeeks": "Tidligere Uker",
+  "previousMonths": "Tidligere Måneder",
+  "nextWeekPrediction": "Neste Ukeprognose for {{medication}}",
+  "nextMonthPrediction": "Neste Månedprognose for {{medication}}",
+  "trendAnalysis": "{{period}} Trendanalyse: {{medication}} i {{municipality}}",
+  "increase": "Økning",
+  "noData": "Ingen data"
+}

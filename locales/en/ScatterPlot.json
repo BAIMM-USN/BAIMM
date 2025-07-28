@@ -1,0 +1,11 @@
+{"Export":"Export CSV"," HeatMap":" Heat Map","Next":"Next"," Previous":" Previous","Scatter":"Scatter","Trend":"Trend View",
+
+  "previousWeeks": "Previous Weeks ({{period}})",
+  "previousMonths": "Previous Months ({{period}})",
+  "nextWeekPrediction": "Next Week Prediction for {{medication}}",
+  "nextMonthPrediction": "Next Month Prediction for {{medication}}",
+  "weeklyTrendAnalysis": "Weekly Trend Analysis: {{medication}} in {{municipality}}",
+  "monthlyTrendAnalysis": "Monthly Trend Analysis: {{medication}} in {{municipality}}"
+
+
+}
