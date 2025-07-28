@@ -1,0 +1,8 @@
+{
+  "insight": {
+    "increase": "Significant increase detected: +{{change}}% compared to previous {{period}}.",
+    "decrease": "Significant decrease detected: {{change}}% compared to previous {{period}}.",
+    "month": "month",
+    "week": "week"
+  }
+}

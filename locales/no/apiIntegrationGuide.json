@@ -1,0 +1,17 @@
+{
+  "getApiAccess": "Få API-tilgang",
+  "apiIntegrationGuide": "API-integrasjonsveiledning",
+  "apiAccessGranted": "API-tilgang gitt",
+  "apiReady": "Du er innlogget og klar til å integrere!",
+  "step1": "Legg til Firebase i prosjektet ditt",
+  "step1Description": "Bruk denne konfigurasjonen i Firebase-initialiseringen din:",
+  "copyConfig": "Kopier konfigurasjon",
+  "copied": "Kopiert!",
+  "step2": "Autentiser med Firebase Auth",
+  "step2Description": "Sett opp autentisering (f.eks. e-post/passord, Google osv.) i systemet ditt.",
+  "step3": "Kall API-et med ID-tokenet ditt",
+  "generateApiExample": "Generer mitt API-eksempel",
+  "copyToClipboard": "Kopier til utklippstavle",
+  "note": "Merk",
+  "idTokenNote": "ID-tokenet ditt er kortvarig og brukerspesifikt. Autentiser alltid og hent et nytt token før du kaller API-et."
+}

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface DataPoint {
   x: number;
@@ -98,6 +99,7 @@ Municipality: ${selectedMunicipality}`;
   // Always call hooks at the top level, never inside conditions
   const [showInsight, setShowInsight] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
+  const { t } = useTranslation("ScatterChart");
 
   useEffect(() => {
     let insightMsg: string | null = null;
@@ -106,30 +108,25 @@ Municipality: ${selectedMunicipality}`;
       const last = data[data.length - 1];
       if (prev && last && prev.y > 0) {
         const change = ((last.y - prev.y) / prev.y) * 100;
+        const period = t(
+          predictionType === "monthly" ? "insight.month" : "insight.week"
+        );
         if (change > 30) {
-          insightMsg =
-            predictionType === "monthly"
-              ? `Significant increase detected: +${change.toFixed(
-                  1
-                )}% compared to previous month.`
-              : `Significant increase detected: +${change.toFixed(
-                  1
-                )}% compared to previous week.`;
+          insightMsg = t("insight.increase", {
+            change: change.toFixed(1),
+            period,
+          });
         } else if (change < -30) {
-          insightMsg =
-            predictionType === "monthly"
-              ? `Significant decrease detected: ${change.toFixed(
-                  1
-                )}% compared to previous month.`
-              : `Significant decrease detected: ${change.toFixed(
-                  1
-                )}% compared to previous week.`;
+          insightMsg = t("insight.decrease", {
+            change: change.toFixed(1),
+            period,
+          });
         }
       }
     }
     setInsight(insightMsg);
     setShowInsight(false); // Reset insight visibility on data/predictionType change
-  }, [predictionType, data]);
+  }, [predictionType, data, t]);
 
   const modifiedData = data;
 
@@ -266,11 +263,11 @@ Municipality: ${selectedMunicipality}`;
           opacity="0.5"
         />
       )}
-      {viewMode === "both" && (
+      {/* {viewMode === "both" && (
         <text x="52%" y="15%" className="text-xs fill-red-600 font-medium">
           Current {predictionType === "weekly" ? "Week" : "Month"}
         </text>
-      )}
+      )} */}
     </div>
   );
 }

@@ -1,0 +1,19 @@
+{
+  "exportData": "Export Data",
+  "configureExport": "Configure your data export settings",
+  "customizeSelection": "Customize Selection",
+  "medication": "Medication",
+  "predictionType": "Prediction Type",
+  "weekly": "Weekly",
+  "monthly": "Monthly",
+  "municipality": "Municipality",
+  "selectMunicipality": "Select municipality...",
+  "historyPeriod": "History Period",
+  "additionalData": "Additional Data",
+  "includeConfidence": "Include confidence levels",
+  "includeOutliers": "Include outlier detection",
+  "exportFormat": "Export format: CSV • File size: ~",
+  "cancel": "Cancel",
+  "preparing": "Preparing...",
+  "downloadCsv": "Download CSV"
+}

@@ -1,0 +1,16 @@
+{
+  "top10Increases": "🔺 Top 10 Demand Increases",
+  "demandLevel": "Demand Level",
+  "demand": "Demand",
+  "unknown": "Unknown",
+  "week": "Week",
+  "weeks": "Weeks",
+  "month": "Month",
+  "months": "Months",
+  "previousWeeks": "Previous Weeks",
+  "previousMonths": "Previous Months",
+  "nextWeekPrediction": "Next Week Prediction for {{medication}}",
+  "nextMonthPrediction": "Next Month Prediction for {{medication}}",
+  "trendAnalysis": "{{period}} Trend Analysis: {{medication}} in {{municipality}}",
+  "increase": "Increase"
+}

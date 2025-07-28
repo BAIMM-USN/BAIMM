@@ -5,6 +5,7 @@ import { getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import Select from "react-select";
 import { Municipality, Prediction } from "@/types/medication";
+import { useTranslation } from "react-i18next";
 
 type MunicipalityOption = { label: string; value: string };
 
@@ -31,6 +32,8 @@ export default function DownloadModal({
   onMedicationChange,
   onPredictionTypeChange,
 }: DownloadModalProps) {
+  const { t} = useTranslation("downloadModal");
+
   // const allMunicipalities: { id: string; name: string }[] =
   //   typeof window !== "undefined" && (window as any).__ALL_MUNICIPALITIES__
   //     ? (window as any).__ALL_MUNICIPALITIES__
@@ -194,11 +197,9 @@ export default function DownloadModal({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Export Data
+                {t("exportData")}
               </h2>
-              <p className="text-sm text-gray-600">
-                Configure your data export settings
-              </p>
+              <p className="text-sm text-gray-600">{t("configureExport")}</p>
             </div>
           </div>
           <button
@@ -215,7 +216,7 @@ export default function DownloadModal({
           <div className="flex items-center gap-2 mb-2">
             <FileText className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-900">
-              Customize Selection
+              {t("customizeSelection")}
             </span>
           </div>
 
@@ -223,7 +224,7 @@ export default function DownloadModal({
             {/* Medication dropdown */}
             <div>
               <label className="text-blue-700 font-medium block mb-1">
-                Medication
+                {t("medication")}
               </label>
               <select
                 value={localMedication}
@@ -241,7 +242,7 @@ export default function DownloadModal({
             {/* Prediction type dropdown */}
             <div>
               <label className="text-blue-700 font-medium block mb-1">
-                Prediction Type
+                {t("predictionType")}
               </label>
               <select
                 value={localPredictionType}
@@ -252,8 +253,8 @@ export default function DownloadModal({
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 capitalize"
               >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="weekly">{t("weekly")}</option>
+                <option value="monthly">{t("monthly")}</option>
               </select>
             </div>
           </div>
@@ -263,7 +264,7 @@ export default function DownloadModal({
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-600" />
               <label className="text-sm font-medium text-gray-700">
-                Municipality
+                {t("municipality")}
               </label>
             </div>
             <div className="w-64">
@@ -280,7 +281,7 @@ export default function DownloadModal({
                   )
                 }
                 isMulti
-                placeholder="Select municipality..."
+                placeholder={t("selectMunicipality")}
                 isSearchable
                 styles={{
                   control: (base) => ({
@@ -299,7 +300,7 @@ export default function DownloadModal({
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-gray-600" />
               <label className="text-sm font-medium text-gray-700">
-                History Period
+                {t("historyPeriod")}
               </label>
             </div>
             <select
@@ -325,7 +326,7 @@ export default function DownloadModal({
           {/* Additional Options */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-gray-700">
-              Additional Data
+              {t("additionalData")}
             </label>
             <div className="space-y-2">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -336,7 +337,7 @@ export default function DownloadModal({
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">
-                  Include confidence levels
+                  {t("includeConfidence")}
                 </span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -347,7 +348,7 @@ export default function DownloadModal({
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm text-gray-700">
-                  Include outlier detection
+                  {t("includeOutliers")}
                 </span>
               </label>
             </div>
@@ -357,7 +358,7 @@ export default function DownloadModal({
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
           <div className="text-sm text-gray-600">
-            Export format: CSV • File size: ~
+            {t("exportFormat")}
             {Math.ceil(
               (selectedMunicipalities.length ||
                 availableMunicipalities.length) * 0.1
@@ -370,7 +371,7 @@ export default function DownloadModal({
               disabled={isDownloading}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               onClick={handleDownload}
@@ -380,12 +381,12 @@ export default function DownloadModal({
               {isDownloading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Preparing...
+                  {t("preparing")}
                 </>
               ) : (
                 <>
                   <Download className="w-4 h-4" />
-                  Download CSV
+                  {t("downloadCsv")}
                 </>
               )}
             </button>
@@ -395,4 +396,3 @@ export default function DownloadModal({
     </div>
   );
 }
-

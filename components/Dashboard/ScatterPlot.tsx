@@ -5,8 +5,6 @@ import {
   TrendingUp,
   Calendar,
   History,
-  ChevronLeft,
-  ChevronRight,
   Activity,
   Download,
 } from "lucide-react";
@@ -14,6 +12,7 @@ import ScatterChart from "./ScatterPlot/ScatterChart";
 import ScatterStats from "./ScatterPlot/ScatterStats";
 import ScatterFilters from "./ScatterPlot/ScatterFilters";
 import DownloadModal from "./DownloadModal";
+import { useTranslation } from "react-i18next";
 // import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { Municipality, DataPoint } from "../../types/medication";
 
@@ -66,6 +65,7 @@ export default function ScatterPlot({
   const [visualization, setVisualization] = useState<"scatter" | "heatmap">(
     "scatter"
   );
+  const { t } = useTranslation("ScatterPlot");
 
   const selectedMedication =
     selectedMedicationProp ?? (availableMedications[0] || "");
@@ -98,11 +98,8 @@ export default function ScatterPlot({
     staticHistoryPeriods[0]
   );
   const [municipalitySearch, setMunicipalitySearch] = useState<string>("");
- 
-  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
- 
- 
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   const getDisplayData = (): DataPoint[] => {
     switch (viewMode) {
@@ -152,7 +149,7 @@ export default function ScatterPlot({
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Scatter
+                {t("Scatter")}
               </button>
               <button
                 onClick={() => setVisualization("heatmap")}
@@ -162,7 +159,7 @@ export default function ScatterPlot({
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                Heat Map
+                {t("HeatMap")}
               </button>
             </div>
             {/* Download/Export CSV Button */}
@@ -178,7 +175,7 @@ export default function ScatterPlot({
               disabled={!isLoggedIn}
             >
               <Download className="w-4 h-4" />
-              Export CSV
+              {t("Export")}
             </button>
           </div>
         </div>
@@ -193,7 +190,7 @@ export default function ScatterPlot({
               }`}
             >
               <History className="w-4 h-4" />
-              Previous
+              {t("Previous")}
             </button>
             <button
               onClick={() => handleViewModeChange("upcoming")}
@@ -204,7 +201,7 @@ export default function ScatterPlot({
               }`}
             >
               <Calendar className="w-4 h-4" />
-              Next {predictionType === "weekly" ? "Week" : "Month"}
+              {t("Next")} {predictionType === "weekly" ? "Week" : "Month"}
             </button>
             <button
               onClick={() => handleViewModeChange("both")}
@@ -215,11 +212,10 @@ export default function ScatterPlot({
               }`}
             >
               <Activity className="w-4 h-4" />
-              Trend View
+              {t("Trend")}
             </button>
           </div>
         )}
-        {/* Always show ScatterFilters for predictionType/municipality/history selection */}
         <ScatterFilters
           predictionType={predictionType}
           onPredictionTypeChange={onPredictionTypeChange}
@@ -271,26 +267,32 @@ export default function ScatterPlot({
           {/* Time period indicator */}
           <div className="mt-4 flex items-center justify-center">
             <div className="bg-gray-100 rounded-full px-4 py-2 flex items-center gap-2">
-              {viewMode === "previous" && (
-                <ChevronLeft className="w-4 h-4 text-gray-600" />
-              )}
-              <span className="text-sm font-medium text-gray-700">
-                {viewMode === "previous" &&
-                  `Previous ${
-                    predictionType === "weekly" ? "Weeks" : "Months"
-                  } (${selectedHistoryPeriod})`}
-                {viewMode === "upcoming" &&
-                  `Next ${
-                    predictionType === "weekly" ? "Week" : "Month"
-                  } Prediction for ${selectedMedication}`}
-                {viewMode === "both" &&
-                  `${
-                    predictionType === "weekly" ? "Weekly" : "Monthly"
-                  } Trend Analysis: ${selectedMedication} in ${selectedMunicipalityName}`}
-              </span>
-              {viewMode === "upcoming" && (
-                <ChevronRight className="w-4 h-4 text-gray-600" />
-              )}
+              {viewMode === "previous" &&
+                t(
+                  predictionType === "weekly"
+                    ? "previousWeeks"
+                    : "previousMonths",
+                  { period: selectedHistoryPeriod }
+                )}
+
+              {viewMode === "upcoming" &&
+                t(
+                  predictionType === "weekly"
+                    ? "nextWeekPrediction"
+                    : "nextMonthPrediction",
+                  { medication: selectedMedication }
+                )}
+
+              {viewMode === "both" &&
+                t(
+                  predictionType === "weekly"
+                    ? "weeklyTrendAnalysis"
+                    : "monthlyTrendAnalysis",
+                  {
+                    medication: selectedMedication,
+                    municipality: selectedMunicipalityName,
+                  }
+                )}
             </div>
           </div>
         </>

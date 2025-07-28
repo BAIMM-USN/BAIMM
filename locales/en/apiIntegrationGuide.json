@@ -1,0 +1,17 @@
+{
+  "getApiAccess": "Get API Access",
+  "apiIntegrationGuide": "API Integration Guide",
+  "apiAccessGranted": "API Access Granted",
+  "apiReady": "You are logged in and ready to integrate!",
+  "step1": "Add Firebase to your project",
+  "step1Description": "Use this config in your Firebase initialization:",
+  "copyConfig": "Copy Config",
+  "copied": "Copied!",
+  "step2": "Authenticate with Firebase Auth",
+  "step2Description": "Set up authentication (e.g., email/password, Google, etc.) in your system.",
+  "step3": "Call the API with your ID token",
+  "generateApiExample": "Generate My API Example",
+  "copyToClipboard": "Copy to Clipboard",
+  "note": "Note",
+  "idTokenNote": "Your ID token is short-lived and user-specific. Always authenticate and get a fresh token before calling the API."
+}

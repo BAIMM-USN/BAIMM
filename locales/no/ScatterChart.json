@@ -1,0 +1,8 @@
+{
+  "insight": {
+    "increase": "Betydelig økning oppdaget: +{{change}}% sammenlignet med forrige {{period}}.",
+    "decrease": "Betydelig nedgang oppdaget: {{change}}% sammenlignet med forrige {{period}}.",
+    "month": "måned",
+    "week": "uke"
+  }
+}

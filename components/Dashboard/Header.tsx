@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Activity, LogOut, User, LogIn } from "lucide-react";
+import { useTranslation } from "react-i18next"; // or from "next-i18next"
 
 interface HeaderProps {
   user: { name: string; email: string } | null;
@@ -9,82 +10,25 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
-  const [isTranslateLoaded, setIsTranslateLoaded] = React.useState(false);
-  const [scriptLoaded, setScriptLoaded] = React.useState(false);
+  const { t, i18n } = useTranslation("header"); // "header" is the namespace
 
-  React.useEffect(() => {
-    // Inject Google Translate script if not present
-    const scriptId = "google-translate-script";
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement("script");
-      console.log(isTranslateLoaded)
-      script.id = scriptId;
-      script.src =
-        "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
-      script.async = true;
-      script.onload = () => setScriptLoaded(true);
-      document.body.appendChild(script);
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const lang = e.target.value;
+    const path = typeof window !== "undefined" ? window.location.pathname : "/";
+    let newPath;
+
+    if (/^\/(en|no)/.test(path)) {
+      newPath = path.replace(/^\/(en|no)/, `/${lang}`);
     } else {
-      setScriptLoaded(true);
+      newPath = `/${lang}${path === "/" ? "" : path}`;
     }
-  }, []);
 
-  React.useEffect(() => {
-    // Define the global init function if not present
-    if (typeof window !== "undefined" && !window.googleTranslateElementInit) {
-      window.googleTranslateElementInit = function () {
-        // eslint-disable-next-line no-undef
-        new window.google.translate.TranslateElement(
-          {
-            pageLanguage: "en",
-            includedLanguages: "en,no", // Add more as needed
-            layout:
-              window.google.translate.TranslateElement.InlineLayout.SIMPLE,
-            autoDisplay: false,
-          },
-          "google_translate_element"
-        );
-      };
+    if (window.location.pathname === newPath) {
+      i18n.changeLanguage(lang);
+    } else {
+      window.location.pathname = newPath;
     }
-  }, []);
-
-  React.useEffect(() => {
-    // Wait for script to load, then initialize
-    if (scriptLoaded && typeof window !== "undefined") {
-      const container = document.getElementById("google_translate_element");
-      // Remove previous widget to avoid double rendering
-      if (container) {
-        container.innerHTML = "";
-      }
-      if (
-        window.google &&
-        window.google.translate &&
-        typeof window.googleTranslateElementInit === "function"
-      ) {
-        window.googleTranslateElementInit();
-        setIsTranslateLoaded(true);
-      } else {
-        // Retry after a short delay if not ready yet
-        const timer = setTimeout(() => {
-          const containerRetry = document.getElementById(
-            "google_translate_element"
-          );
-          if (containerRetry) {
-            containerRetry.innerHTML = "";
-          }
-          if (
-            window.google &&
-            window.google.translate &&
-            typeof window.googleTranslateElementInit === "function"
-          ) {
-            window.googleTranslateElementInit();
-            setIsTranslateLoaded(true);
-          }
-        }, 500);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [scriptLoaded]);
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -96,13 +40,22 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">BAIMM</h1>
-              <p className="text-sm text-gray-600">
-                Medication Demand Forecasting
-              </p>
+              <p className="text-sm text-gray-600">{t("Baimm_des")}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Language Switcher */}
+            <select
+              value={i18n.language}
+              onChange={handleLanguageChange}
+              className="border rounded px-2 py-1 text-sm"
+              style={{ minWidth: 70 }}
+            >
+              <option value="en">EN</option>
+              <option value="no">NO</option>
+            </select>
+
             {user ? (
               <>
                 <div className="flex items-center gap-2">
@@ -116,37 +69,23 @@ export default function Header({ user, onLogout, onLoginClick }: HeaderProps) {
                   className="flex items-center gap-2 text-sm text-gray-600 hover:text-red-600 transition-colors duration-200"
                 >
                   <LogOut className="w-4 h-4" />
-                  Logout
+                  {t("Logout")}
                 </button>
               </>
             ) : (
               <div className="flex items-center gap-4">
                 <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                  Guest Mode - Limited Access
+                  {t("Guest_mode")}
                 </div>
                 <button
                   onClick={onLoginClick}
                   className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200"
                 >
                   <LogIn className="w-4 h-4" />
-                  Login
+                  {t("Login")}
                 </button>
               </div>
             )}
-
-            {/* Google Translate Widget Container */}
-            <div
-              id="google_translate_element"
-              className="ml-2 google-translate-container"
-              style={{
-                minWidth: "10px",
-                maxWidth: "220px",
-                height: "32px", // Fixed height to fit header
-                overflow: "hidden",
-                position: "relative",
-                zIndex: 50,
-              }}
-            />
           </div>
         </div>
       </div>
