@@ -5,8 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
-import { getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+
 import { useTranslation } from "react-i18next";
 
 interface MunicipalityProperties {
@@ -42,7 +41,40 @@ interface HeatMapProps {
   predictionType?: "weekly" | "monthly";
 }
 
-// Change function signature to accept selectedMedication as a prop
+async function fetchPredictionsFromApi({
+  token,
+  medicationId,
+  municipalityId,
+  periodType,
+  weekNumber,
+  monthNumber,
+}: {
+  token?: string;
+  medicationId?: string;
+  municipalityId?: string;
+  periodType?: string;
+  weekNumber?: number;
+  monthNumber?: number;
+}): Promise<Prediction[]> {
+  const params = new URLSearchParams();
+  if (medicationId) params.append("medicationId", medicationId);
+  if (municipalityId) params.append("municipalityId", municipalityId);
+  if (periodType) params.append("periodType", periodType);
+  if (weekNumber !== undefined) params.append("weekNumber", String(weekNumber));
+  const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+  if (monthNumber !== undefined)
+    params.append("monthNumber", String(monthNumber));
+  const url = `${API_BASE_URL}/predictions${
+    params.toString() ? `?${params.toString()}` : ""
+  }`;
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch predictions from backend API");
+  return res.json();
+}
+
 export default function MedicationDemandMap({
   selectedMedication,
   predictionType = "weekly",
@@ -56,54 +88,36 @@ export default function MedicationDemandMap({
   >([]);
   const { t } = useTranslation("heatMap");
 
-  // Fetch demand values for week 4 (weekly) or month 3 (monthly) from Firestore (for coloring the map)
   useEffect(() => {
     if (!selectedMedication) return;
     async function fetchDemand() {
-      let predsSnap;
-      if (predictionType === "monthly") {
-        predsSnap = await getDocs(
-          query(
-            collection(db, "predictions"),
-            where("periodType", "==", "monthly"),
-            where("monthNumber", "==", 3),
-            where("medicationId", "==", selectedMedication)
-          )
-        );
-      } else {
-        predsSnap = await getDocs(
-          query(
-            collection(db, "predictions"),
-            where("periodType", "==", "weekly"),
-            where("weekNumber", "==", 4),
-            where("medicationId", "==", selectedMedication)
-          )
-        );
+      try {
+        const predictions = await fetchPredictionsFromApi({
+          medicationId: selectedMedication,
+          periodType: predictionType,
+          weekNumber: predictionType === "weekly" ? 4 : undefined,
+          monthNumber: predictionType === "monthly" ? 3 : undefined,
+        });
+        const demandMap: DemandMap = {};
+        predictions.forEach((data) => {
+          demandMap[data.municipalityId] = data.predictedValue || data.y || 0;
+        });
+        setDemand(demandMap);
+      } catch (err) {
+        setDemand({});
       }
-      const demandMap: DemandMap = {};
-      predsSnap.forEach((doc) => {
-        const data = doc.data();
-        demandMap[data.municipalityId] = data.predictedValue || data.y || 0;
-      });
-      setDemand(demandMap);
     }
     fetchDemand();
   }, [selectedMedication, predictionType]);
 
-  // Fetch filtered municipalities GeoJSON
   useEffect(() => {
     fetch("/Kommuner-M.geojson")
       .then((res) => res.json())
       .then((data: GeoJSONData) => {
         setGeoData(data);
       });
-    // console.log(
-    //   geoData?.features?.map((feature) => feature.properties.kommunenummer),
-    //   geoData?.features?.map((feature) => feature.properties.name)
-    // );
   }, []);
 
-  // Zoom to bounds after geoData is loaded
   useEffect(() => {
     if (geoData && mapRef.current) {
       const bounds = L.geoJSON(geoData).getBounds();
@@ -111,17 +125,8 @@ export default function MedicationDemandMap({
     }
   }, [geoData]);
 
-  // Log geoData changes
-  useEffect(() => {
-    if (geoData) {
-      console.log("GeoData fetched:", geoData);
-    }
-  }, [geoData]);
-
-  // Color scale for demand
   const getColor = (value: number) => {
     if (predictionType === "monthly") {
-      // Monthly: use a different scale (example: higher values, wider bands)
       return value > 300
         ? "#800026"
         : value > 200
@@ -167,9 +172,7 @@ export default function MedicationDemandMap({
     )
       .toString()
       .trim();
-    // Debug: log the key and value
-    // console.log("style kommunenr", kommunenr, "val", demand[kommunenr]);
-    // console.log(demand)
+   
     const val = demand[kommunenr] || 0;
     return {
       fillColor: getColor(val),
@@ -216,84 +219,73 @@ export default function MedicationDemandMap({
   useEffect(() => {
     if (!selectedMedication) return;
     async function fetchIncreases() {
-      const increases: { municipalityId: string; increase: number }[] = [];
-      if (predictionType === "monthly") {
-        // Monthly: get month 2 and month 3 for selected medication
-        const monthlySnap = await getDocs(
-          query(
-            collection(db, "predictions"),
-            where("periodType", "==", "monthly"),
-            where("monthNumber", "in", [2, 3]),
-            where("medicationId", "==", selectedMedication)
-          )
-        );
-        const month2Map: { [mun: string]: number } = {};
-        const month3Map: { [mun: string]: number } = {};
-        monthlySnap.forEach((doc) => {
-          const data = doc.data() as Prediction;
-          if (data.monthNumber === 2) {
-            month2Map[data.municipalityId] = data.predictedValue || data.y || 0;
-          }
-          if (data.monthNumber === 3) {
-            month3Map[data.municipalityId] = data.predictedValue || data.y || 0;
-          }
+      try {
+        let predsPrev: Prediction[] = [];
+        let predsCurr: Prediction[] = [];
+        if (predictionType === "monthly") {
+          // Compare month 3 vs month 2
+          predsPrev = await fetchPredictionsFromApi({
+            medicationId: selectedMedication,
+            periodType: "monthly",
+            monthNumber: 2,
+          });
+          predsCurr = await fetchPredictionsFromApi({
+            medicationId: selectedMedication,
+            periodType: "monthly",
+            monthNumber: 3,
+          });
+        } else {
+          // Compare week 4 vs week 3
+          predsPrev = await fetchPredictionsFromApi({
+            medicationId: selectedMedication,
+            periodType: "weekly",
+            weekNumber: 3,
+          });
+          predsCurr = await fetchPredictionsFromApi({
+            medicationId: selectedMedication,
+            periodType: "weekly",
+            weekNumber: 4,
+          });
+        }
+        // Map by municipalityId
+        const mapPrev: { [mun: string]: number } = {};
+        const mapCurr: { [mun: string]: number } = {};
+        predsPrev.forEach((data) => {
+          mapPrev[data.municipalityId] = data.predictedValue || data.y || 0;
         });
-        // Only compare municipalities that exist in both months
-        Object.keys(month3Map).forEach((mun) => {
-          if (month2Map.hasOwnProperty(mun)) {
-            const inc = month3Map[mun] - month2Map[mun];
-            increases.push({ municipalityId: mun, increase: inc });
-          }
+        predsCurr.forEach((data) => {
+          mapCurr[data.municipalityId] = data.predictedValue || data.y || 0;
         });
-      } else {
-        // Weekly: get week 3 and week 4 for selected medication
-        const weeklySnap = await getDocs(
-          query(
-            collection(db, "predictions"),
-            where("periodType", "==", "weekly"),
-            where("weekNumber", "in", [3, 4]),
-            where("medicationId", "==", selectedMedication)
-          )
-        );
-        const week3Map: { [mun: string]: number } = {};
-        const week4Map: { [mun: string]: number } = {};
-        weeklySnap.forEach((doc) => {
-          const data = doc.data() as Prediction;
-          if (data.weekNumber === 3) {
-            week3Map[data.municipalityId] = data.predictedValue || data.y || 0;
-          }
-          if (data.weekNumber === 4) {
-            week4Map[data.municipalityId] = data.predictedValue || data.y || 0;
-          }
-        });
-        Object.keys(week4Map).forEach((mun) => {
-          const inc = week4Map[mun] - (week3Map[mun] || 0);
+        // Calculate increases
+        const increases: { municipalityId: string; increase: number }[] = [];
+        Object.keys(mapCurr).forEach((mun) => {
+          const inc = mapCurr[mun] - (mapPrev[mun] || 0);
           increases.push({ municipalityId: mun, increase: inc });
         });
+        // Map municipalityId to name using geoData if available
+        const idToName: { [id: string]: string } = {};
+        if (geoData) {
+          geoData.features.forEach((f) => {
+            const id = (f.properties.kommunenummer || f.properties.id || "")
+              .toString()
+              .trim();
+            const name = f.properties.kommunenavn || f.properties.name || id;
+            idToName[id] = name;
+          });
+        }
+        // Sort and pick top 10
+        const top10 = increases
+          .map((item) => ({
+            kommunenavn: idToName[item.municipalityId] || item.municipalityId,
+            increase: item.increase,
+          }))
+          .sort((a, b) => b.increase - a.increase)
+          .slice(0, 10);
+        setTop10Increases(top10);
+      } catch (err) {
+        console.error("Error fetching increases from backend:", err);
+        setTop10Increases([]);
       }
-
-      // Map municipalityId to name using geoData if available
-      const idToName: { [id: string]: string } = {};
-      if (geoData) {
-        geoData.features.forEach((f) => {
-          const id = (f.properties.kommunenummer || f.properties.id || "")
-            .toString()
-            .trim();
-          const name = f.properties.kommunenavn || f.properties.name || id;
-          idToName[id] = name;
-        });
-      }
-
-      // Sort and pick top 10
-      const top10 = increases
-        .map((item) => ({
-          kommunenavn: idToName[item.municipalityId] || item.municipalityId,
-          increase: item.increase,
-        }))
-        .sort((a, b) => b.increase - a.increase)
-        .slice(0, 10);
-
-      setTop10Increases(top10);
     }
     fetchIncreases();
   }, [geoData, selectedMedication, predictionType]);

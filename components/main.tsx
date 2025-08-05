@@ -7,15 +7,53 @@ import MedicationSelector from "../components/Dashboard/MedicationSelector";
 import ScatterPlot from "../components/Dashboard/ScatterPlot";
 import ResearchInfo from "../components/Dashboard/ResearchInfo";
 import type { Medication, Prediction, Municipality } from "../types/medication";
-import {
-  fetchMedications,
-  fetchPredictions,
-  fetchMunicipalities,
-} from "../utils/firestore";
+
+// Use environment variable for API base URL
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+
+async function fetchMedicationsFromApi(token?: string): Promise<Medication[]> {
+  const res = await fetch(`${API_BASE_URL}/medications`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch medications from backend API");
+  return res.json();
+}
+
+async function fetchPredictionsFromApi({
+  token,
+  medicationId,
+  municipalityId,
+  periodType,
+}: {
+  token?: string;
+  medicationId?: string;
+  municipalityId?: string;
+  periodType?: string;
+}): Promise<Prediction[]> {
+  const params = new URLSearchParams();
+  if (medicationId) params.append("medicationId", medicationId);
+  if (municipalityId) params.append("municipalityId", municipalityId);
+  if (periodType) params.append("periodType", periodType);
+  const url = `${API_BASE_URL}/predictions${
+    params.toString() ? `?${params.toString()}` : ""
+  }`;
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Failed to fetch predictions from backend API");
+  return res.json();
+}
+
+async function fetchMunicipalitiesFromApi(): Promise<Municipality[]> {
+  const res = await fetch(`${API_BASE_URL}/municipalities`);
+  if (!res.ok)
+    throw new Error("Failed to fetch municipalities from backend API");
+  return res.json();
+}
 
 import { ApiIntegrationGuide } from "@/components/Dashboard/apiIntegration";
 import { useTranslation } from "react-i18next";
-// Add a simple in-memory cache (module-level, survives reloads in dev, but not across serverless invocations)
 let medicationsCache: Medication[] | null = null;
 let predictionsCache: Prediction[] | null = null;
 let municipalitiesCache: Municipality[] | null = null;
@@ -29,8 +67,6 @@ export default function App() {
   );
   const [modalLoading, setModalLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const [medicationsData, setMedicationsData] = useState<Medication[]>([]);
   const [predictionsData, setPredictionsData] = useState<Prediction[]>([]);
   const [municipalitiesData, setMunicipalitiesData] = useState<Municipality[]>(
@@ -39,57 +75,88 @@ export default function App() {
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  useEffect(() => {
-    async function fetchData() {
-      if (!isMounted) return;
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
 
+  useEffect(() => {
+    async function fetchStaticData() {
       setLoadingData(true);
       setDataError(null);
-
       try {
-        // Use cache if available
         let medications = medicationsCache;
-        let predictions = predictionsCache;
         let municipalities = municipalitiesCache;
-
-        if (!medications || !predictions || !municipalities) {
-          const [meds, preds, munis] = await Promise.all([
-            fetchMedications(),
-            fetchPredictions(),
-            fetchMunicipalities(),
-          ]);
-          medications = meds;
-          predictions = preds;
-          municipalities = munis;
-          // Store in cache
+        let token: string | undefined = undefined;
+        if (user && user.getIdToken) {
+          token = await user.getIdToken();
+        }
+        if (!medications) {
+          medications = await fetchMedicationsFromApi(token);
           medicationsCache = medications;
-          predictionsCache = predictions;
+        } else if (token) {
+          medications = await fetchMedicationsFromApi(token);
+          medicationsCache = medications;
+        }
+        if (!municipalities) {
+          municipalities = await fetchMunicipalitiesFromApi();
           municipalitiesCache = municipalities;
         }
-
-        setMedicationsData(medications);
-        setPredictionsData(predictions);
-        setMunicipalitiesData(municipalities);
-
-        // Set initial medication if none selected
+        setMedicationsData(medications || []);
+        setMunicipalitiesData(municipalities || []);
         if (medications.length > 0 && !selectedMedication) {
           setSelectedMedication(medications[0].id);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching static data:", error);
         setDataError("Failed to load data. Please try again.");
       } finally {
         setLoadingData(false);
       }
     }
+    fetchStaticData();
+  }, [user]);
 
-    fetchData();
-  }, [isMounted, selectedMedication]);
+  useEffect(() => {
+    if (medicationsData.length > 0) {
+      const found = medicationsData.find((m) => m.id === selectedMedication);
+      if (!found) {
+        setSelectedMedication(medicationsData[0].id);
+      }
+    }
+  }, [medicationsData]);
 
-  // Map Firebase user to expected Header user shape
+  useEffect(() => {
+    const medicationId = selectedMedication || medicationsData[0]?.id;
+    if (!medicationId || !selectedMunicipality) {
+      setPredictionsData([]);
+      setLoadingData(false);
+      return;
+    }
+    setLoadingData(true);
+    setDataError(null);
+    async function fetchPredictions() {
+      try {
+        let predictions: Prediction[] = [];
+        let token: string | undefined = undefined;
+        if (user && user.getIdToken) {
+          token = await user.getIdToken();
+        }
+        const preds = await fetchPredictionsFromApi({
+          token,
+          medicationId,
+          municipalityId: selectedMunicipality,
+          periodType: predictionType,
+        });
+        predictions = preds;
+        predictionsCache = predictions;
+        setPredictionsData(predictions || []);
+      } catch (error) {
+        setDataError("Failed to load predictions. Please try again.");
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    fetchPredictions();
+  }, [selectedMedication, selectedMunicipality, predictionType]);
+
   const headerUser =
     user && user.email
       ? {
@@ -98,16 +165,12 @@ export default function App() {
         }
       : null;
 
-  // Track selected municipality by id
-  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
-
   useEffect(() => {
     if (municipalitiesData.length > 0 && !selectedMunicipality) {
       setSelectedMunicipality(municipalitiesData[0].id);
     }
   }, [municipalitiesData, selectedMunicipality]);
 
-  // Helper to get predictions for selected medication and selected municipality (by id)
   function getPredictionData(
     medicationId: string,
     predictionType: "weekly" | "monthly",
@@ -120,7 +183,6 @@ export default function App() {
         (p) =>
           p.medicationId === medicationId &&
           p.periodType === predictionType &&
-          // Accept both id and name for robustness
           (p.municipalityId === municipalityId ||
             municipalitiesData.find((m) => m.id === municipalityId)?.name ===
               p.municipalityId)
@@ -135,7 +197,6 @@ export default function App() {
       return { upcoming: [], previous: [] };
     }
 
-    // Use the last (latest) as the upcoming, previous are all before it
     const upcoming = [
       {
         x:
@@ -175,7 +236,6 @@ export default function App() {
     return { upcoming, previous };
   }
 
-  // Update getAvailableHistoryPeriods to filter by selected municipality
   function getAvailableHistoryPeriods(
     predictionType: "weekly" | "monthly"
   ): string[] {
@@ -210,6 +270,13 @@ export default function App() {
       await login(email, password);
       setIsLoginModalOpen(false);
     } finally {
+      let token: string | undefined = undefined;
+      if (user && user.getIdToken) {
+        token = await user.getIdToken();
+      }
+      fetchMedicationsFromApi(token).then((medications) => {
+        medicationsCache = medications;
+      });
       setModalLoading(false);
     }
   };
@@ -230,8 +297,9 @@ export default function App() {
 
   const { t } = useTranslation("mainPage");
 
-  // Show loading until hydration is complete and auth is resolved
-  if (!isMounted || isLoading || loadingData) {
+  const staticDataLoaded =
+    medicationsData.length > 0 && municipalitiesData.length > 0;
+  if (isLoading || loadingData || !staticDataLoaded) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -242,7 +310,6 @@ export default function App() {
     );
   }
 
-  // Show error state
   if (dataError) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -258,18 +325,11 @@ export default function App() {
       </div>
     );
   }
-  if (user) {
-    user.getIdToken().then((token) => {
-      console.log("Your Firebase ID token:", token);
-    });
-  }
 
-  // Common dashboard content component
   const DashboardContent = ({ showLoginButton = false }) => {
     const currentMedicationId =
       selectedMedication || medicationsData[0]?.id || "";
 
-    // Your Firebase client config (safe to share)
     const firebaseConfig = {
       apiKey: "AIzaSyCr7lo2u_wTjODERWRcasdjxbsQ2Wvmeac",
       authDomain: "baimm-58404.firebaseapp.com",
