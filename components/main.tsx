@@ -395,7 +395,6 @@ export default function App() {
             <ResearchInfo />
             {user && (
               <ApiIntegrationGuide
-                firebaseConfig={firebaseConfig}
                 apiEndpoint="https://baimm.vercel.app/api/predict"
               />
             )}

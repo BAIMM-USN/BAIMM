@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import Select from "react-select";
 import { X, Download } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-
+import  { useTranslation } from "react-i18next";
 
 interface Municipality {
   id: string;
@@ -16,7 +15,6 @@ interface DownloadModalProps {
   availableMedications: string[];
   availableMunicipalities: Municipality[];
   availableHistoryPeriods: string[];
-  t?: (key: string) => string;
 }
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
@@ -63,8 +61,9 @@ export default function DownloadModal({
   availableMedications = [],
   availableMunicipalities = [],
   availableHistoryPeriods = [],
-  t,
 }: DownloadModalProps) {
+  
+   const { t } = useTranslation("downloadModal");
   const { user } = useAuth();
   const [selectedMedication, setSelectedMedication] = useState(
     availableMedications[0] || ""
@@ -165,10 +164,10 @@ export default function DownloadModal({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Download Data
+                {t("exportData")}
               </h2>
               <p className="text-sm text-gray-600">
-                Export medication demand predictions as CSV.
+                {t("configureExport")}
               </p>
             </div>
           </div>
@@ -184,7 +183,7 @@ export default function DownloadModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
             <div>
               <label className="text-blue-700 font-medium block mb-1">
-                Medication
+                {t("medication")}
               </label>
               <select
                 value={selectedMedication}
@@ -200,21 +199,21 @@ export default function DownloadModal({
             </div>
             <div>
               <label className="text-blue-700 font-medium block mb-1">
-                Prediction Type
+                {t("predictionType")}
               </label>
               <select
                 value={selectedPredictionType}
                 onChange={(e) => setSelectedPredictionType(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 capitalize"
               >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
+                <option value="weekly">{t("weekly")}</option>
+                <option value="monthly">{t("monthly")}</option>
               </select>
             </div>
           </div>
           <div>
             <label className="text-blue-700 font-medium block mb-1">
-              Municipalities
+              {t("municipality")}
             </label>
             <Select
               isMulti
@@ -283,7 +282,7 @@ export default function DownloadModal({
           </div>
           <div>
             <label className="text-blue-700 font-medium block mb-1">
-              History Period
+              {t("historyPeriod")}
             </label>
             <select
               value={selectedHistoryPeriod}
@@ -305,7 +304,7 @@ export default function DownloadModal({
                 onChange={(e) => setIncludeConfidence(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700">Include Confidence</span>
+              <span className="text-sm text-gray-700">{t("includeConfidence")}</span>
             </label>
           </div>
         </div>
@@ -315,7 +314,7 @@ export default function DownloadModal({
             disabled={isDownloading}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             onClick={handleDownload}
@@ -325,12 +324,12 @@ export default function DownloadModal({
             {isDownloading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                Preparing...
+                {t("preparing")}
               </>
             ) : (
               <>
                 <Download className="w-4 h-4" />
-                Download CSV
+                {t("downloadCsv")}
               </>
             )}
           </button>
